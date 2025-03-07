@@ -1,0 +1,135 @@
+from psycopg2 import sql
+
+class SQLInterface:
+    def __init__(self, db_conn):
+        self.conn = db_conn
+        self.cursor = self.conn.cursor()
+        self.table = None
+        self.columns = []
+        self.clauses = {}
+    
+    def set_table(self, table):
+        self.table = table
+
+    def set_columns(self, columns):
+        self.columns = columns
+
+    def set_clauses(self, clauses):
+        self.clauses = clauses
+    
+    def get_table(self):
+        return self.table
+
+    def get_columns(self):
+        return self.columns
+    
+    def get_clauses(self):
+        return self.clauses
+    
+    def execute_query(self, query):
+        try:
+            self.cursor.execute(query)
+            self.conn.commit()
+        except Exception as e:
+            print("Error executing query." + e)
+    
+    def create_query_params(self, params):
+        query_params = []
+        params_len = len(params)
+        for i, param in enumerate(params):
+            col = param.get("col")
+            clause = param.get("clause")
+            value = param.get("value")
+            operator = param.get("operator", " AND ")
+            if clause in self.clauses.keys():
+                used_clause = sql.SQL(self.clauses.get(clause)).format(
+                    sql.Identifier(col),
+                    sql.Literal(value)
+                )
+                query_params.append(used_clause)
+            if params_len==1 or i==params_len-1:
+                continue
+            query_params.append(sql.SQL(operator))
+        return sql.SQL("").join(query_params)
+
+    def create_format_params(self):
+        return {
+            "columns": sql.SQL(", ").join(sql.Identifier(col) for col, type in self.columns),
+            "table": sql.Identifier(self.table)
+        }
+
+    def validate_value_types(self, values):
+        for row in values:
+            for i, value in enumerate(row):
+                target_col = self.columns[i]
+                if not target_col:
+                    continue
+                target_type = target_col[1]
+                if not isinstance(value, target_type):
+                    print(f"TABLE: {self.table} - Invalid type {type(value)} for col {target_col[0]}. {target_col[1]} required")
+                    return False
+        return True
+
+    def add(self, values):
+        params = self.create_format_params()
+        values_list = []
+        for row in values:
+            if not (self.validate_value_types(values)):
+                print(f"TABLE: {self.table} - datatypes not valid for insert: {row}")
+                continue
+            row_sql = sql.SQL(", ").join(sql.Literal(value) for value in row)
+            values_list.append(sql.SQL("({})").format(row_sql))
+        params.update({"values": sql.SQL(", ").join(values_list)})
+        query = sql.SQL("INSERT INTO {table} ({columns}) values {values}").format(
+            **params
+        )
+        print("EXEUCTING:", query.as_string(self.conn))
+        self.execute_query(query)
+        return True
+    
+    def get(self, params, all=False):
+        if all == True:
+            all_query = sql.SQL("SELECT * FROM {table}").format(
+                table=sql.Identifier(self.table)
+            )
+            self.execute_query(all_query)
+            return self.cursor.fetchall()
+        format_params = self.create_format_params()
+        query_params = self.create_query_params(params)
+        format_params.update({"clauses": query_params})
+        query = sql.SQL("SELECT {columns} FROM {table} WHERE {clauses}").format(
+            **format_params
+        )
+        print("EXEUCTING:", query.as_string(self.conn))
+        self.execute_query(query)
+        data = self.cursor.fetchall()
+        return data
+    
+    def update(self, params):
+        params.update({"clauses": self.create_query_params(params.get("clauses"))})
+        params.update({"table": sql.Identifier(self.table)})
+        columns_list = []
+        for col, value in params.get("columns").items():
+            row_sql = sql.SQL("{}={}").format(
+                sql.Identifier(col),
+                sql.Literal(value)
+            )
+            columns_list.append(row_sql)
+        params.update({"column_values": sql.SQL(", ").join(columns_list)})
+        query = sql.SQL("UPDATE {table} SET {column_values} WHERE {clauses}").format(
+            **params
+        )
+        print("EXEUCTING:", query.as_string(self.conn))
+        self.execute_query(query)
+        return True
+
+    def delete(self, params):
+        params.update({"clauses": self.create_query_params(params.get("clauses"))})
+        target_table = self.table
+        query = sql.SQL("DELETE FROM {table} WHERE {clauses}").format(
+            **params,
+            table=target_table
+        )
+        print("EXEUCTING:", query.as_string(self.conn))
+        self.execute_query(query)
+        return True
