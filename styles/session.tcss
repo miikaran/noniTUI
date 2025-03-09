@@ -1,0 +1,63 @@
+Screen {
+    align: center middle;
+}
+
+Vertical {
+    align: center middle;
+    height: auto;
+}
+
+#session-title {
+    color: #7dcfff;
+    width: auto;
+}
+
+MaskedInput.-valid {
+    border: tall $success 60%;
+}
+MaskedInput.-valid:focus {
+    border: tall $success;
+}
+MaskedInput {
+    margin: 1 1;
+    width: 50%
+}
+
+Label {
+    margin: 1 2;
+    text-align: center;
+}
+
+Label.remove {
+    display: none;
+}
+
+MaskedInput.remove {
+    display: none;
+}
+
+Input.remove {
+    display: none;
+}
+
+Input {
+    margin: 1 1;
+    width: 50%
+}
+
+Input.-valid {
+    border: tall $success 60%;
+}
+Input.-valid:focus {
+    border: tall $success;
+}
+
+#project-splitter {
+    color: #545c7e;
+    width: auto;
+}
+
+#session-submit-help {
+    color: #545c7e;
+    width: auto;
+}
