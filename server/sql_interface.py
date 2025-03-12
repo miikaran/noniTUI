@@ -1,9 +1,10 @@
 from psycopg2 import sql
+from psycopg2.extras import RealDictCursor
 
 class SQLInterface:
     def __init__(self, db_conn):
         self.conn = db_conn
-        self.cursor = self.conn.cursor()
+        self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
         self.table = None
         self.columns = []
         self.clauses = {}

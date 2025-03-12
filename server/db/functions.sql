@@ -12,7 +12,7 @@ BEGIN
     --    Changes on messages table -> publish to messages_channel_<project_id>
     --    etc...
     --    Makes it easier to listen and process data from different tables
-    channel_name := format('%I_channel_%s', TG_TABLE_NAME, COALESCE(NEW.project_id, 'public'));
+    channel_name := format('%I_channel_%s', TG_TABLE_NAME, COALESCE(NEW.project_id::TEXT, 'public'));
     IF TG_OP = 'INSERT' THEN
         payload := json_build_object('operation', 'INSERT', 'table', TG_TABLE_NAME, 'new_data', row_to_json(NEW))::text;
     ELSIF TG_OP = 'UPDATE' THEN

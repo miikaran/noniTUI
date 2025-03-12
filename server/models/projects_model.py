@@ -5,8 +5,7 @@ class ProjectsModel(SQLInterface):
         super().__init__(db_conn)
         self.set_table("projects")
         self.set_columns([
-            ("id", int),
-            ("session_id", int),
+            ("project_id", int),
             ("project_name", str),
             ("description", str),
             ("created_at", str),

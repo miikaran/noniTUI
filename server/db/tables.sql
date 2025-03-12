@@ -2,22 +2,19 @@
 
 -- Table: projects
 CREATE TABLE projects (
-    id SERIAL PRIMARY KEY,
+    project_id SERIAL PRIMARY KEY,
     project_name VARCHAR(255),
     description TEXT,
     created_at DATE,
-    modified_at TIMESTAMP
+    modified_at BIGINT
 );
 
 -- Table: sessions
 CREATE TABLE sessions (
     session_id UUID PRIMARY KEY,
-    project_id INT REFERENCES projects(id),
+    project_id INT REFERENCES projects(project_id),
     valid_until DATE
 );
-
--- Have to do this here because sessions can't be referenced before init
-ALTER TABLE projects ADD session_id UUID REFERENCES sessions(session_id);
 
 -- Table: session_participants
 CREATE TABLE session_participants (
@@ -30,17 +27,17 @@ CREATE TABLE session_participants (
 -- Table: messages
 CREATE TABLE messages (
     id SERIAL PRIMARY KEY,
-    project_id INT REFERENCES projects(id),
+    project_id INT REFERENCES projects(project_id),
     session_participant_id INT REFERENCES session_participants(participant_id),
     message_sender VARCHAR(255),
     message_content TEXT,
-    message_timestamp TIMESTAMP
+    message_timestamp BIGINT
 );
 
 -- Table: tasks
 CREATE TABLE tasks (
     id SERIAL PRIMARY KEY,
-    project_id INT REFERENCES projects(id),
+    project_id INT REFERENCES projects(project_id),
     name VARCHAR(255),
     assignee VARCHAR(255),
     description TEXT,
