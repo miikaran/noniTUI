@@ -1,21 +1,23 @@
---- PostgreSQL environment for the NonihTUI app
-
--- Table: sessions
-CREATE TABLE sessions (
-    session_id UUID PRIMARY KEY,
-    project_id UUID REFERENCES projects(id),
-    valid_until DATE
-);
+--- PostgreSQL tables for the NonihTUI app
 
 -- Table: projects
 CREATE TABLE projects (
     id SERIAL PRIMARY KEY,
-    session_id UUID REFERENCES sessions(session_id),
     project_name VARCHAR(255),
     description TEXT,
     created_at DATE,
     modified_at TIMESTAMP
 );
+
+-- Table: sessions
+CREATE TABLE sessions (
+    session_id UUID PRIMARY KEY,
+    project_id INT REFERENCES projects(id),
+    valid_until DATE
+);
+
+-- Have to do this here because sessions can't be referenced before init
+ALTER TABLE projects ADD session_id UUID REFERENCES sessions(session_id);
 
 -- Table: session_participants
 CREATE TABLE session_participants (
