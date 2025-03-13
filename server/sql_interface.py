@@ -1,5 +1,6 @@
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
+from psycopg2 import connect
 
 class SQLInterface:
     def __init__(self, db_conn):
@@ -26,6 +27,9 @@ class SQLInterface:
     
     def get_clauses(self):
         return self.clauses
+
+    def init_db_conn(**db_credentials):
+        return connect(**db_credentials)
     
     def execute_query(self, query):
         try:

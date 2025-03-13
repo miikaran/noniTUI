@@ -1,17 +1,6 @@
-from fastapi import FastAPI
-from models.projects_model import ProjectsModel
-from psycopg2 import connect
-from dotenv import load_dotenv
-import os
+from fastapi import FastAPI, HTTPException
 import uvicorn
-
-load_dotenv()
-
-POSTGRE_USERNAME=os.getenv('POSTGRE_USERNAME')
-POSTGRE_PASSWORD=os.getenv('POSTGRE_PASSWORD')
-POSTGRE_HOST=os.getenv('POSTGRE_HOST')
-POSTGRE_PORT=os.getenv('POSTGRE_PORT')
-POSTGRE_DATABASE=os.getenv('POSTGRE_DATABASE')
+from request_handlers import Factories
 
 app = FastAPI(
     title="NoniAPI",
@@ -20,22 +9,20 @@ app = FastAPI(
 
 @app.get("/")
 async def root():
-    sql = ProjectsModel(
-        connect(
-            database=POSTGRE_DATABASE,
-            user=POSTGRE_USERNAME,
-            password=POSTGRE_PASSWORD,
-            host=POSTGRE_HOST,
-            port=POSTGRE_PORT
-        )
-    )
-    print(sql.get(params=[
-        {
-            "col": "project_id",
-            "clause": "projects_equals",
-            "value": 1
+    handler = Factories.request_handler_factory(
+        request_type="database_update",
+        params={
+            "statement_params": [{
+                "col": "project_id",
+                "clause": "projects_equals",
+                "value": 1
+            }],
+            "target_table": "projects",
+            "modification_type": "select",
         }
-    ]))
+    )
+    print(handler.handle_request())
+    return {}
 
 if __name__ == "__main__":
     uvicorn.run(
