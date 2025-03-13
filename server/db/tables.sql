@@ -6,7 +6,7 @@ CREATE TABLE projects (
     project_name VARCHAR(255),
     description TEXT,
     created_at DATE,
-    modified_at BIGINT
+    modified_at TIMESTAMP
 );
 
 -- Table: sessions
@@ -31,7 +31,7 @@ CREATE TABLE messages (
     session_participant_id INT REFERENCES session_participants(participant_id),
     message_sender VARCHAR(255),
     message_content TEXT,
-    message_timestamp BIGINT
+    message_timestamp TIMESTAMP
 );
 
 -- Table: tasks
