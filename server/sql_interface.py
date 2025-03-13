@@ -28,7 +28,7 @@ class SQLInterface:
     def get_clauses(self):
         return self.clauses
 
-    def init_db_conn(**db_credentials):
+    def init_db_conn(db_credentials):
         return connect(**db_credentials)
     
     def execute_query(self, query):
@@ -38,6 +38,13 @@ class SQLInterface:
         except Exception as e:
             print("Error executing query." + e)
     
+    def get_next_serial_id_val(self, serial_col):
+        seq = f"{self.table}_{serial_col}_seq"
+        self.execute_query(sql.SQL("SELECT nextval({sequence})").format(
+                sequence=sql.Literal(seq)
+            ))
+        return self.cursor.fetchall()[0]["nextval"]
+
     def create_query_params(self, params):
         query_params = []
         params_len = len(params)
@@ -75,22 +82,26 @@ class SQLInterface:
                     return False
         return True
 
-    def add(self, values):
+    def add(self, values, returning=""):
         params = self.create_format_params()
         values_list = []
         for row in values:
+            print(row)
             if not (self.validate_value_types(values)):
                 print(f"TABLE: {self.table} - datatypes not valid for insert: {row}")
                 continue
             row_sql = sql.SQL(", ").join(sql.Literal(value) for value in row)
             values_list.append(sql.SQL("({})").format(row_sql))
         params.update({"values": sql.SQL(", ").join(values_list)})
-        query = sql.SQL("INSERT INTO {table} ({columns}) values {values}").format(
+        params.update({"col": sql.Identifier(returning)})
+        query = sql.SQL("INSERT INTO {table} ({columns}) values {values} RETURNING {col}").format(
             **params
         )
         print("EXEUCTING:", query.as_string(self.conn))
         self.execute_query(query)
-        return True
+        id = self.cursor.fetchall()[0][returning]
+        print(id)
+        return True, self.cursor.rowcount, id
     
     def get(self, params, all=False):
         if all == True:
@@ -126,7 +137,7 @@ class SQLInterface:
         )
         print("EXEUCTING:", query.as_string(self.conn))
         self.execute_query(query)
-        return True
+        return True, self.cursor.rowcount
 
     def delete(self, params):
         params.update({"clauses": self.create_query_params(params.get("clauses"))})
@@ -137,4 +148,10 @@ class SQLInterface:
         )
         print("EXEUCTING:", query.as_string(self.conn))
         self.execute_query(query)
-        return True
+        return True, self.cursor.rowcount
+
+    def already_exists(self, filter_params):
+        query_result = self.get(params=[{
+            **filter_params
+        }])
+        return len(query_result) > 0
