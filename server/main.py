@@ -1,6 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 import uvicorn
-from request_handlers import Factories
+from request_handlers import AppDatabaseHandler
+from exceptions import NoniAPIException
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+postgresql_credentials = {
+    "user": os.getenv('POSTGRE_USERNAME'),
+    "password": os.getenv('POSTGRE_PASSWORD'),
+    "host": os.getenv('POSTGRE_HOST'),
+    "port": os.getenv('POSTGRE_PORT'),
+    "database": os.getenv('POSTGRE_DATABASE')
+}
 
 app = FastAPI(
     title="NoniAPI",
@@ -9,20 +22,16 @@ app = FastAPI(
 
 @app.get("/")
 async def root():
-    handler = Factories.request_handler_factory(
-        request_type="database_update",
-        params={
-            "statement_params": [{
+    request_handler = AppDatabaseHandler(
+        "projects",
+        postgresql_credentials,
+        NoniAPIException
+    )
+    print(request_handler.get_projects([{
                 "col": "project_id",
                 "clause": "projects_equals",
                 "value": 1
-            }],
-            "target_table": "projects",
-            "modification_type": "select",
-        }
-    )
-    print(handler.handle_request())
-    return {}
+            }]))
 
 if __name__ == "__main__":
     uvicorn.run(
