@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
-from db.db import get_db
-from models import messages_model
+from core.database import get_db
 
 router = APIRouter(prefix="/messages")
     

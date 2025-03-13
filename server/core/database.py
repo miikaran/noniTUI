@@ -1,4 +1,4 @@
-from sql_interface import SQLInterface
+from server.core.sql_interface import SQLInterface
 from dotenv import load_dotenv
 import os
 

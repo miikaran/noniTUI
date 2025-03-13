@@ -1,4 +1,4 @@
-from sql_interface import SQLInterface
+from server.core.sql_interface import SQLInterface
 
 class MessagesModel(SQLInterface):
     def __init__(self, db_conn):
