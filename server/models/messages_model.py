@@ -5,7 +5,6 @@ class MessagesModel(SQLInterface):
         super().__init__(db_conn)
         self.set_table("messages")
         self.set_columns([
-            ("id", int),
             ("project_id", int),
             ("session_participant_id", int),
             ("message_sender", str),
