@@ -7,20 +7,11 @@ import uuid
 class HandlerInterface:
     """Represents a generic interface for handling database requests"""
     def __init__(self, db: object, target_model: object):
-        """
-        Args:
-            db (obj):               Database connection
-            target_model (class):   Model to use for database processes
-        """
         self.db = db
         self.model = target_model(db)
     
     def get_all(self) -> list:
-        """Method to fetch all the data in model
-
-        Returns:
-            list: List of rows that are returned from model
-        """
+        """Method for getting all data from model"""
         return self.model.select({}, all=True)
     
     def filter_from(self, filters: dict, format: dict={}) -> list:
@@ -223,15 +214,7 @@ class SessionHandler(HandlerInterface):
         self.valid_until = self.get_valid_until(365)
 
     def get_valid_until(self, days_from_now, date_format="%m/%d/%Y, %H:%M:%S"):
-        """Method for getting datetime object x days in the future
-
-        Args:
-            days_from_now (int): Days in the future
-            date_format (str): String date format to use
-
-        Returns:
-            datetime: Datetime object with the counted time
-        """
+        """Method for getting datetime object x days in the future"""
         return datetime.today()+timedelta(days=days_from_now).strftime(date_format)
     
     def create_session(self, session_data={}):
