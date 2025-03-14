@@ -44,6 +44,10 @@ class SQLInterface:
                 sequence=sql.Literal(seq)
             ))
         return self.cursor.fetchall()[0]["nextval"]
+    
+    def sort_row_values_by_columns(self, data):
+        # Sorts keypairs to match the table col order
+        return {key: data[key] for key, type in self.model.columns}
 
     def create_query_params(self, params):
         query_params = []
@@ -82,7 +86,7 @@ class SQLInterface:
                     return False
         return True
 
-    def add(self, values, returning=""):
+    def insert(self, values, returning=""):
         params = self.create_format_params()
         values_list = []
         for row in values:
@@ -103,7 +107,7 @@ class SQLInterface:
         print(id)
         return True, self.cursor.rowcount, id
     
-    def get(self, params, all=False):
+    def select(self, params, all=False):
         if all == True:
             all_query = sql.SQL("SELECT * FROM {table}").format(
                 table=sql.Identifier(self.table)

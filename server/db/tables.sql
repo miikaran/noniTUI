@@ -3,55 +3,55 @@
 -- Table: projects
 CREATE TABLE projects (
     project_id SERIAL PRIMARY KEY,
-    project_name VARCHAR(255),
+    project_name VARCHAR(255) NOT NULL,
     description TEXT,
-    created_at DATE,
-    modified_at TIMESTAMP
+    created_at DATE NOT NULL,
+    modified_at TIMESTAMP NOT NULL
 );
 
 -- Table: sessions
 CREATE TABLE sessions (
     session_id UUID PRIMARY KEY,
-    project_id INT REFERENCES projects(project_id),
-    valid_until DATE
+    project_id INT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    valid_until DATE NOT NULL
 );
 
 -- Table: session_participants
 CREATE TABLE session_participants (
     participant_id SERIAL PRIMARY KEY,
-    session_UUID UUID REFERENCES sessions(session_id),
-    participant_name VARCHAR(255),
-    joined_at DATE
+    session_UUID UUID NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    participant_name VARCHAR(255) NOT NULL,
+    joined_at DATE NOT NULL
 );
 
 -- Table: messages
 CREATE TABLE messages (
     id SERIAL PRIMARY KEY,
-    project_id INT REFERENCES projects(project_id),
-    session_participant_id INT REFERENCES session_participants(participant_id),
-    message_sender VARCHAR(255),
-    message_content TEXT,
-    message_timestamp TIMESTAMP
+    project_id INT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    session_participant_id INT NOT NULL REFERENCES session_participants(participant_id) ON DELETE CASCADE,
+    message_sender VARCHAR(255) NOT NULL,
+    message_content TEXT NOT NULL,
+    message_timestamp TIMESTAMP NOT NULL
 );
 
 -- Table: tasks
 CREATE TABLE tasks (
     id SERIAL PRIMARY KEY,
-    project_id INT REFERENCES projects(project_id),
-    name VARCHAR(255),
-    assignee VARCHAR(255),
+    project_id INT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    assignee VARCHAR(255) NOT NULL,
     description TEXT,
     start_date DATE,
     end_date DATE,
-    task_type VARCHAR(10) CHECK (task_type IN ('todo', 'in-progress', 'backlog', 'done')) DEFAULT 'todo'
+    task_type VARCHAR(10) NOT NULL CHECK (task_type IN ('todo', 'in-progress', 'backlog', 'done')) DEFAULT 'todo'
 );
 
 -- Table: tasks_enrichment
 CREATE TABLE tasks_enrichment (
     id SERIAL PRIMARY KEY,
-    task_id INT REFERENCES tasks(id),
-    done_completed SMALLINT,
-    updated_tasks_statuses SMALLINT,
-    created_tasks SMALLINT,
-    tasks_due SMALLINT
+    task_id INT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    done_completed SMALLINT NOT NULL,
+    updated_tasks_statuses SMALLINT NOT NULL,
+    created_tasks SMALLINT NOT NULL,
+    tasks_due SMALLINT NOT NULL
 );
