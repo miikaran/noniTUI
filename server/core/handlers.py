@@ -1,6 +1,6 @@
-from models.projects_model import ProjectsModel
-from models.messages_model import MessagesModel
-from models.tasks_model import TasksModel
+from .models.projects_model import ProjectsModel
+from .models.messages_model import MessagesModel
+from .models.tasks_model import TasksModel
 from datetime import datetime, timedelta
 import uuid
 

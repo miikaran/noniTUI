@@ -1,4 +1,4 @@
-from server.core.sql_interface import SQLInterface
+from .sql_interface import SQLInterface
 from dotenv import load_dotenv
 import os
 
@@ -11,6 +11,5 @@ POSTGRE_CREDENTIALS = {
     "port":     os.getenv('POSTGRE_PORT'),
     "database": os.getenv('POSTGRE_DATABASE')
 }
-
 def get_db():
     return SQLInterface.init_db_conn(POSTGRE_CREDENTIALS)

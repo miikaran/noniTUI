@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Body, Field, Request, HTTPException, Query
+from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query
 from core.database import get_db
 from core.handlers import ProjectHandler
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 import json

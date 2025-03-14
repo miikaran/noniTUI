@@ -1,4 +1,4 @@
-from server.core.sql_interface import SQLInterface
+from core.sql_interface import SQLInterface
 from datetime import datetime
 
 class TasksModel(SQLInterface):
