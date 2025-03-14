@@ -15,15 +15,7 @@ class HandlerInterface:
         return self.model.select({}, all=True)
     
     def filter_from(self, filters: dict, format: dict={}) -> list:
-        """Method to filter data from model
-
-        Args:
-            filters (dict): Contains keypairs for columns and clauses used for filtering
-            format (dict):  Additional formatting parameters used in the query
-
-        Returns:
-            list: List of rows that are returned from model
-        """
+        """Method to filter data from model with filters"""
         return self.model.select(filters, **format)
     
     @staticmethod
