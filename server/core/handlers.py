@@ -99,7 +99,10 @@ class HandlerInterface:
         if id:
             if not clauses:
                 print(f"No clause found for id specific delete for table {self.model.table}")
-                raise NoniAPIException(status_code=400, detail=f"Failed to delete record for lacking data")
+                raise NoniAPIException(
+                    status_code=400, 
+                    detail=f"Failed to delete record for lacking data"
+                    )
             filters={"clauses": clauses}
         if not filters:
             print("No filters found for deleting")
@@ -109,7 +112,10 @@ class HandlerInterface:
             print(f"Row deleted from {self.model.table} successfully")
             return True
         print(f"Deleting with {filters} from {self.model.table} was not successful")
-        raise NoniAPIException(status_code=400, detail=f"Failed to delete record")
+        raise NoniAPIException(
+            status_code=400, 
+            detail=f"Failed to delete record"
+            )
 
 class ProjectHandler(HandlerInterface):
     """Represents a handler used to process requests to the projects model"""
@@ -120,10 +126,16 @@ class ProjectHandler(HandlerInterface):
         """Method for creating a project, including session"""
         if not project_data:
             print("No project data provided")
-            raise NoniAPIException(status_code=400, detail="No project data provided")
+            raise NoniAPIException(
+                status_code=400, 
+                detail="No project data provided"
+                )
         project_id = self.add_project(project_data)
         if not project_id:
-            raise NoniAPIException(status_code=500, detail="No project id found for project")
+            raise NoniAPIException(
+                status_code=500, 
+                detail="No project id found for project"
+                )
         success, session_id = SessionHandler(self.db).create_session({"project_id": project_id})
         if not (success and session_id):
             # Remove the new project if couldn't create a session for it
@@ -131,9 +143,15 @@ class ProjectHandler(HandlerInterface):
             if deleted:
                 print(f"Removed project {project_id} for invalid session initialization")
             else: 
-                raise NoniAPIException(status_code=500, detail=f"Rollback for project: {project_id} failed")
                 print(f"Session initialization and delete failed for project: {project_id}")
-            raise NoniAPIException(status_code=500, detail=f"Failed to create a project")
+                raise NoniAPIException(
+                    status_code=500, 
+                    detail=f"Rollback for project: {project_id} failed"
+                    )
+            raise NoniAPIException(
+                status_code=500, 
+                detail=f"Failed to create a project"
+                )
         # Otherwise -> return the session id for joining
         return session_id
         
