@@ -27,8 +27,7 @@ class HandlerInterface:
     def filter_from(db: object, model: object, filters: dict, format: dict={}) -> list:
         return model(db).select(filters, **format)
     
-    def add_record(self, data: list, required_cols: list, unique: dict={}, return_col: str=""
-            ) -> bool | tuple:
+    def add_record(self, data: list, required_cols: list, unique: dict={}, return_col: str="") -> bool | tuple:
         """General method for adding records to a model"""
         if not data:
             print(f"Data for {self.model.table} insert not found")
@@ -64,7 +63,6 @@ class HandlerInterface:
             detail=f"Failed to add record to table: {self.model.table}"
             )
 
-    
     def update_record(self, id, updated_data: dict, clauses: list) -> bool:
         """General method for updating records in model"""
         if not id:
@@ -92,7 +90,6 @@ class HandlerInterface:
             status_code=500, 
             detail=f"Failed to update {self.model.table} id: {id}"
             )
-
 
     def delete_record(self, id=None, filters: dict={}, clauses: dict={}) -> bool:
         """General method for deleting records from model"""
