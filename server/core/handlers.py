@@ -27,34 +27,29 @@ class HandlerInterface:
     def filter_from(db: object, model: object, filters: dict, format: dict={}) -> list:
         return model(db).select(filters, **format)
     
-    def add_record(self, data: list, required_cols: list, unique: dict={}, return_col: str="") -> bool | tuple:
-        """General method for adding records to a model
-
-        Args:
-            data (list):            List of tuples that presents rows
-            required_cols (list):   Keys to require in the record
-            unique (dict):          Dictionary containing clauses to check if value already exists
-            return_col (str):       Column that we want to return with the insert   
-
-        Returns:
-            bool: Boolean value representing success
-            tuple: Tuple of success and id if return_col defined        
-    
-        """
+    def add_record(self, data: list, required_cols: list, unique: dict={}, return_col: str=""
+            ) -> bool | tuple:
+        """General method for adding records to a model"""
         if not data:
             print(f"Data for {self.model.table} insert not found")
             return False
         for key in required_cols:
             if key not in data:
                 print(f"Required {key} not found in new record to {self.model.table}")
-                raise NoniAPIException(status_code=400, detail="Required keys for project not provided")
+                raise NoniAPIException(
+                    status_code=400, 
+                    detail="Required keys for project not provided"
+                    )
         if unique:
             already_exists = self.model.already_exists(unique)
             if already_exists:
                 col = unique.get("col")
                 value = unique.get("value")
                 print(f"{col} with value {value} already exists in {self.model.table}")
-                raise NoniAPIException(status_code=400, detail="Project already exists")
+                raise NoniAPIException(
+                    status_code=400, 
+                    detail="Project already exists"
+                    )
         ordered_data = self.model.sort_row_values_by_columns(data)
         success, rows_updated, id = self.model.insert(
             values=[tuple(ordered_data.values())], 
@@ -64,28 +59,27 @@ class HandlerInterface:
             print(f"New record created to {self.model.table} with id: {id}")
             return success, id
         print(f"Failed to add a record to {self.model.table}")
-        raise NoniAPIException(status_code=500, detail=f"Failed to add record to table: {self.model.table}")
+        raise NoniAPIException(
+            status_code=500, 
+            detail=f"Failed to add record to table: {self.model.table}"
+            )
 
     
     def update_record(self, id, updated_data: dict, clauses: list) -> bool:
-        """General method for updating records in model
-
-        Args:
-            id (Optional):          Unique id stored from the record
-            updated_data (dict):    Dictionary containing columns, values and clauses for the update
-            clauses (list):         List of clauses used to overwrite the ones in updated_data 
-            
-        Returns:
-            bool: Boolean value representing success  
-
-        """
+        """General method for updating records in model"""
         if not id:
             print(f"{self.model.table} id not provided")
-            raise NoniAPIException(status_code=400, detail="Unique ID of updated record not found")
+            raise NoniAPIException(
+                status_code=400, 
+                detail="Unique ID of updated record not found"
+                )
         columns_with_new_values = updated_data.get("columns", None)
         if not columns_with_new_values:
             print(f"New column-values not provided for update attempt to {self.model.table}")
-            raise NoniAPIException(status_code=400, detail="Values to update not provided")
+            raise NoniAPIException(
+                status_code=400, 
+                detail="Values to update not provided"
+                )
         success, rows_updated = self.model.update({
             **updated_data,
             "clauses": clauses
@@ -94,21 +88,14 @@ class HandlerInterface:
             print(f"{self.model.table} ID: {id} updated successfully")
             return True
         print(f"{self.model.table} ID: {id} was not updated successfully")
-        raise NoniAPIException(status_code=500, detail=f"Failed to update {self.model.table} id: {id}")
+        raise NoniAPIException(
+            status_code=500, 
+            detail=f"Failed to update {self.model.table} id: {id}"
+            )
 
 
     def delete_record(self, id=None, filters: dict={}, clauses: dict={}) -> bool:
-        """General method for deleting records from model
-
-        Args:
-            id (Optional):          Unique id stored from the record
-            filters (dict):         Dictionary containing clauses for filtering
-            clauses (list):         List of clauses used to overwrite the ones in filters
-            
-        Returns:
-            bool: Boolean value representing success  
-
-        """
+        """General method for deleting records from model"""
         if id:
             if not clauses:
                 print(f"No clause found for id specific delete for table {self.model.table}")
@@ -130,16 +117,7 @@ class ProjectHandler(HandlerInterface):
         super().__init__(db=db,target_model=ProjectsModel)
     
     def create_new_project(self, project_data: dict) -> bool | tuple:
-        """Method for creating a project, including session.
-
-        Args:
-            project_data (dict): New projects data
-            
-        Returns:
-            bool: Boolean value representing success  
-            tuple: Tuple of success and created session id
-
-        """
+        """Method for creating a project, including session"""
         if not project_data:
             print("No project data provided")
             raise NoniAPIException(status_code=400, detail="No project data provided")
