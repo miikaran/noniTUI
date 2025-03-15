@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 import json
+from exceptions import NoniAPIException
 
 router = APIRouter(prefix="/projects")
 
@@ -24,8 +25,13 @@ def get_project_handler(db=Depends(get_db)):
 
 @router.get("/all")
 async def get_all_projects(handler: ProjectHandler = Depends(get_project_handler)):
-    results = handler.get_all()
-    return {"results": results}
+    try:
+        results = handler.get_all()
+        return {"results": results}
+    except HTTPException: raise
+    except Exception as e:
+        raise NoniAPIException(500, "Internal server error")
+
 
 @router.get("/")
 async def filter_projects(
@@ -42,7 +48,7 @@ async def filter_projects(
         )
         return {"results": results}
     except Exception as e:
-        raise HTTPException(400, {"error": f"Something went wrong: {e.__class__.__name__}"})
+        raise NoniAPIException(500, "Internal server error")
     
 @router.post("/")
 async def create_project(project_data: dict, db=Depends(get_db)):

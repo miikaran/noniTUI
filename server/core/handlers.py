@@ -3,6 +3,7 @@ from .models.messages_model import MessagesModel
 from .models.tasks_model import TasksModel
 from datetime import datetime, timedelta
 import uuid
+from exceptions import NoniAPIException
 
 class HandlerInterface:
     """Represents a generic interface for handling database requests"""
@@ -46,14 +47,14 @@ class HandlerInterface:
         for key in required_cols:
             if key not in data:
                 print(f"Required {key} not found in new record to {self.model.table}")
-                return False
+                raise NoniAPIException(status_code=400, detail="Required keys for project not provided")
         if unique:
             already_exists = self.model.already_exists(unique)
             if already_exists:
                 col = unique.get("col")
                 value = unique.get("value")
                 print(f"{col} with value {value} already exists in {self.model.table}")
-                return False
+                raise NoniAPIException(status_code=400, detail="Project already exists")
         ordered_data = self.model.sort_row_values_by_columns(data)
         success, rows_updated, id = self.model.insert(
             values=[tuple(ordered_data.values())], 
@@ -63,7 +64,8 @@ class HandlerInterface:
             print(f"New record created to {self.model.table} with id: {id}")
             return success, id
         print(f"Failed to add a record to {self.model.table}")
-        return False
+        raise NoniAPIException(status_code=500, detail=f"Failed to add record to table: {self.model.table}")
+
     
     def update_record(self, id, updated_data: dict, clauses: list) -> bool:
         """General method for updating records in model
@@ -79,11 +81,11 @@ class HandlerInterface:
         """
         if not id:
             print(f"{self.model.table} id not provided")
-            return False
+            raise NoniAPIException(status_code=400, detail="Unique ID of updated record not found")
         columns_with_new_values = updated_data.get("columns", None)
         if not columns_with_new_values:
             print(f"New column-values not provided for update attempt to {self.model.table}")
-            return False
+            raise NoniAPIException(status_code=400, detail="Values to update not provided")
         success, rows_updated = self.model.update({
             **updated_data,
             "clauses": clauses
@@ -92,7 +94,8 @@ class HandlerInterface:
             print(f"{self.model.table} ID: {id} updated successfully")
             return True
         print(f"{self.model.table} ID: {id} was not updated successfully")
-        return False
+        raise NoniAPIException(status_code=500, detail=f"Failed to update {self.model.table} id: {id}")
+
 
     def delete_record(self, id=None, filters: dict={}, clauses: dict={}) -> bool:
         """General method for deleting records from model
@@ -109,7 +112,7 @@ class HandlerInterface:
         if id:
             if not clauses:
                 print(f"No clause found for id specific delete for table {self.model.table}")
-                return False
+                raise NoniAPIException(status_code=400, detail=f"Failed to delete record for lacking data")
             filters={"clauses": clauses}
         if not filters:
             print("No filters found for deleting")
@@ -119,9 +122,8 @@ class HandlerInterface:
             print(f"Row deleted from {self.model.table} successfully")
             return True
         print(f"Deleting with {filters} from {self.model.table} was not successful")
-        return False
-    
-    
+        raise NoniAPIException(status_code=400, detail=f"Failed to delete record")
+
 class ProjectHandler(HandlerInterface):
     """Represents a handler used to process requests to the projects model"""
     def __init__(self, db: object):
@@ -140,10 +142,10 @@ class ProjectHandler(HandlerInterface):
         """
         if not project_data:
             print("No project data provided")
-            return False
+            raise NoniAPIException(status_code=400, detail="No project data provided")
         project_id = self.add_project(project_data)
         if not project_id:
-            return False
+            raise NoniAPIException(status_code=500, detail="No project id found for project")
         success, session_id = SessionHandler(self.db).create_session({"project_id": project_id})
         if not (success and session_id):
             # Remove the new project if couldn't create a session for it
@@ -151,10 +153,11 @@ class ProjectHandler(HandlerInterface):
             if deleted:
                 print(f"Removed project {project_id} for invalid session initialization")
             else: 
+                raise NoniAPIException(status_code=500, detail=f"Rollback for project: {project_id} failed")
                 print(f"Session initialization and delete failed for project: {project_id}")
-            return False
+            raise NoniAPIException(status_code=500, detail=f"Failed to create a project")
         # Otherwise -> return the session id for joining
-        return True, session_id
+        return session_id
         
     def add_project(self, project_data={}):
         """Method for adding new project record"""

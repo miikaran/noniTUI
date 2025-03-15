@@ -3,6 +3,7 @@ from psycopg2.extras import RealDictCursor
 from psycopg2 import connect
 
 class SQLInterface:
+    """Interface for interacting with a PostgreSQL and generating dynamic queries"""
     def __init__(self, db_conn):
         self.conn = db_conn
         self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
