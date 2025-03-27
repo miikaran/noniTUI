@@ -1,0 +1,9 @@
+#chat-message-content {
+    color: white;
+}
+#chat-message-sender {
+    color: #c3e88d;
+}
+#chat-message-time {
+    color: #737aa2;
+}
