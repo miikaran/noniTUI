@@ -19,7 +19,6 @@ class FilterModel(BaseModel):
     filters: Dict[str, Any]
     format: Optional[Dict[str, Any]] = {}
 
-
 def get_project_handler(db=Depends(get_db)):
     return ProjectHandler(db)
 
@@ -31,13 +30,12 @@ async def get_all_projects(handler: ProjectHandler = Depends(get_project_handler
     except HTTPException: raise
     except Exception as e:
         raise InternalServerException
-
-
+    
 @router.get("/")
 async def filter_projects(
     filters: str = Query(..., description="Filters as JSON String"),
     handler: ProjectHandler = Depends(get_project_handler)
-):
+    ):
     try:
         filters_dict = json.loads(filters)
         if not filters_dict:
@@ -52,8 +50,17 @@ async def filter_projects(
         raise InternalServerException
     
 @router.post("/")
-async def create_project(project_data: dict, db=Depends(get_db)):
-    return ProjectHandler(db).create_project({
-        "project_name": "testiproject5",
-        "description": "juu tälläne testi"
-    })
+async def create_project(
+    project_data: ProjectModel, 
+    handler: ProjectHandler = Depends(get_project_handler)
+    ):
+    try:
+        session_id, project_id = handler.create_project(project_data)
+        if session_id:
+            return {
+                "session_id": session_id,
+                "project_id": project_id
+            }
+    except HTTPException: raise
+    except Exception as e:
+        raise InternalServerException

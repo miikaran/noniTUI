@@ -108,8 +108,8 @@ class ProjectHandler(HandlerInterface):
                 print(f"Session initialization and delete failed for project: {project_id}")
                 raise InternalServerException(f"Rollback for project: {project_id} failed after failed session init")
             raise InternalServerException("Failed to create a new project")
-        # Otherwise -> return the session id for joining
-        return session_id
+        # Otherwise -> return the session id & project_id for joining
+        return session_id, project_id
         
     def add_project(self, project_data={}):
         """Method for adding new project record"""
