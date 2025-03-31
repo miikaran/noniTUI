@@ -4,7 +4,7 @@ from .models.tasks_model import TasksModel
 from .models.sessions_model import SessionsModel, SessionParticipantsModel
 from datetime import datetime, timedelta
 import uuid
-from core.exceptions import BadRequestException, NotFoundException, ConflictException, InternalServerException, NoniAPIException
+from server.core.utils.exceptions import BadRequestException, NotFoundException, ConflictException, InternalServerException, NoniAPIException
 
 class HandlerInterface:
     """Represents a generic interface for handling database requests"""

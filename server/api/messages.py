@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query
-from core.database import get_db
+from server.core.utils.database import get_db
 from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 from core.handlers import MessageHandler
-from core.exceptions import InternalServerException, BadRequestException
+from server.core.utils.exceptions import InternalServerException, BadRequestException
 import json
 
 router = APIRouter(prefix="/messages")

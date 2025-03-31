@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query
-from core.database import get_db
+from server.core.utils.database import get_db
 from core.handlers import ProjectHandler
 from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 import json
-from core.exceptions import InternalServerException, BadRequestException
+from server.core.utils.exceptions import InternalServerException, BadRequestException
 from fastapi.encoders import jsonable_encoder
 import traceback 
 
