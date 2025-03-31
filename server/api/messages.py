@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 from core.handlers import MessageHandler
-from server.core.exceptions import InternalServerException, BadRequestException
+from core.exceptions import InternalServerException, BadRequestException
 import json
 
 router = APIRouter(prefix="/messages")
@@ -39,7 +39,7 @@ async def filter_messages(
 
 @router.post("/")
 async def create_message(
-    message_data: MessageHandler, 
+    message_data: MessageModel, 
     handler: MessageHandler = Depends(get_message_handler)
     ):
     try:

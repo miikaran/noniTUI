@@ -21,7 +21,7 @@ CREATE TABLE session_participants (
     participant_id SERIAL PRIMARY KEY,
     session_UUID UUID NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
     participant_name VARCHAR(255) NOT NULL,
-    joined_at DATE NOT NULL
+    joined_at TIMESTAMP NOT NULL
 );
 
 -- Table: messages
