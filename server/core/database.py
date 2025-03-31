@@ -5,10 +5,10 @@ import os
 load_dotenv()
 
 POSTGRE_CREDENTIALS = {
-    "user":     os.getenv('POSTGRE_USERNAME'),
+    "user": os.getenv('POSTGRE_USERNAME'),
     "password": os.getenv('POSTGRE_PASSWORD'),
-    "host":     os.getenv('POSTGRE_HOST'),
-    "port":     os.getenv('POSTGRE_PORT'),
+    "host": os.getenv('POSTGRE_HOST'),
+    "port": os.getenv('POSTGRE_PORT'),
     "database": os.getenv('POSTGRE_DATABASE')
 }
 def get_db():
