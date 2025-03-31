@@ -47,7 +47,7 @@ class SQLInterface:
     
     def sort_row_values_by_columns(self, data):
         # Sorts keypairs to match the table col order
-        return {key: data[key] for key, type in self.model.columns}
+        return {key: data[key] for key, type in self.columns}
 
     def create_query_params(self, params):
         query_params = []
@@ -155,7 +155,7 @@ class SQLInterface:
         return True, self.cursor.rowcount
 
     def already_exists(self, filter_params):
-        query_result = self.get(params=[{
+        query_result = self.select(params=[{
             **filter_params
         }])
         return len(query_result) > 0
