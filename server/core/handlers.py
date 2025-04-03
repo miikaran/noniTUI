@@ -168,23 +168,24 @@ class ProjectHandler(HandlerInterface):
 
 class SessionHandler(HandlerInterface):
     """Represents a handler used to handle project sessions"""
+    SESSION_COOKIE_NAME = "session_id"
+    SESSION_EXPIRATION_DAYS = 365
+    SESSION_EXPIRATION_SECONDS = SESSION_EXPIRATION_DAYS * 24 * 60 * 60
+
     def __init__(self, db):
         super().__init__(db=db, target_model=SessionsModel)
         # Not sure is this field necessary in the db
-        self.valid_until = self.get_valid_until(365)
-
-    def is_participant_in_session(self, session_id, participant_id):
-        """Check whether participant is in a session"""
-        participant_handler = SessionParticipantHandler(self.db)
-        participant_ids = [
-            row["participant_id"] 
-            for row in participant_handler.get_session_participants(session_id)
-            ]
-        if len(participant_ids) < 1:
-            return False
-        if participant_id in participant_ids:
-            return True
-        return False
+        self.valid_until = self.get_valid_until(self.SESSION_EXPIRATION_DAYS)
+    
+    def check_request_session(self, request):
+        """Check session validity from request cookies"""
+        session_id = request.cookies.get(self.SESSION_COOKIE_NAME)
+        if not session_id:
+            raise UnauthorizedException()
+        is_valid_session = self.is_valid_session(session_id=session_id)
+        if not is_valid_session:
+            raise NoniAPIException(status_code=403, detail="Session expired or invalid")
+        return True
 
     def get_session(self, session_id):
         """Get session with session id"""
@@ -238,7 +239,10 @@ class SessionHandler(HandlerInterface):
             valid_until = session_data[0]["valid_until"]
             if valid_until > datetime.now().date():
                 return True, valid_until
-            return False, valid_until
+            raise NoniAPIException(
+                status_code=403,
+                detail="Session expired or invalid"
+            )
         raise BadRequestException("Session ID or Project ID not found for querying session")
 
 class SessionParticipantHandler(HandlerInterface):
@@ -256,6 +260,18 @@ class SessionParticipantHandler(HandlerInterface):
                 "value": str(session_id)
             }]
         )
+    
+    def is_participant_in_session(self, session_id, participant_id):
+        """Check whether participant is in a session"""
+        participant_ids = [
+            row["participant_id"] 
+            for row in self.get_session_participants(session_id)
+            ]
+        if len(participant_ids) < 1:
+            return False
+        if participant_id in participant_ids:
+            return True
+        return False
     
     def get_session_participants_by_project_id(self, project_id):
         """Get session participants by the project id"""
