@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 from core.handlers import MessageHandler
-from core.utils.exceptions import InternalServerException, BadRequestException
+from core.utils.exceptions import InternalServerException, BadRequestException, centralized_error_handling
 import json
 
 router = APIRouter(prefix="/messages")
@@ -20,32 +20,26 @@ def get_message_handler(db=Depends(get_db)):
     return MessageHandler(db)
 
 @router.get("/")
+@centralized_error_handling
 async def filter_messages(
     filters: str = Query(..., description="Filters messages as JSON String"),
     handler: MessageHandler = Depends(get_message_handler)
     ):
-    try:
-        filters_dict = json.loads(filters)
-        if not filters_dict:
-            raise BadRequestException("No filters found in request parameters")
-        results = handler.filter_from(
-            filters=filters_dict.get("filters", {}),
-            format=filters_dict.get("format", {})
-        )
-        return {"results": results}
-    except HTTPException: raise
-    except Exception as e:
-        raise InternalServerException
+    filters_dict = json.loads(filters)
+    if not filters_dict:
+        raise BadRequestException("No filters found in request parameters")
+    results = handler.filter_from(
+        filters=filters_dict.get("filters", {}),
+        format=filters_dict.get("format", {})
+    )
+    return {"results": results}
 
 @router.post("/")
+@centralized_error_handling
 async def create_message(
     message_data: MessageModel, 
     handler: MessageHandler = Depends(get_message_handler)
     ):
-    try:
-        session_id = handler.create_message(message_data)
-        if session_id:
-            return {"session_id": session_id,}
-    except HTTPException: raise
-    except Exception as e:
-        raise InternalServerException
+    session_id = handler.create_message(message_data)
+    if session_id:
+        return {"session_id": session_id,}

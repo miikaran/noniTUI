@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 import json
-from core.utils.exceptions import InternalServerException, BadRequestException, NoniAPIException
+from core.utils.exceptions import InternalServerException, BadRequestException, NoniAPIException, centralized_error_handling
 from fastapi.encoders import jsonable_encoder
 import traceback 
 
@@ -28,121 +28,94 @@ def check_request_session(db=Depends(get_db)):
     return SessionHandler(db).check_request_session
 
 @router.get("/all")
+@centralized_error_handling
 async def get_all_projects(
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
-    try:
-        results = handler._get_all()
-        return {"results": results}
-    except HTTPException: raise
-    except Exception as e:
-        traceback.print_exc()
-        raise InternalServerException
+    results = handler._get_all()
+    return {"results": results}
     
 @router.get("/{project_id}")
+@centralized_error_handling
 async def get_project_by_id(
     project_id: int,
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
-    try:
-        if not project_id:
-            raise BadRequestException("No project_id found in request parameters")
-        results = handler._filter_from(
-            filters=[{
-                "col": "project_id",
-                "clause": "projects_equals",
-                "value": project_id,
-            }],
-        )
-        return results
-    except HTTPException: raise
-    except Exception as e:
-        traceback.print_exc()
-        raise InternalServerException
+    if not project_id:
+        raise BadRequestException("No project_id found in request parameters")
+    results = handler._filter_from(
+        filters=[{
+            "col": "project_id",
+            "clause": "projects_equals",
+            "value": project_id,
+        }],
+    )
+    return results
 
 @router.get("/")
+@centralized_error_handling
 async def filter_projects(
     filters: str = Query(..., description="Filters as JSON String"),
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
-    try:
-        filters_dict = json.loads(filters)
-        if not filters_dict:
-            raise BadRequestException("No filters found in request parameters")
-        results = handler._filter_from(
-            filters=filters_dict.get("filters", {}),
-            format=filters_dict.get("format", {})
-        )
-        return results
-    except HTTPException: raise
-    except Exception as e:
-        traceback.print_exc()
-        raise InternalServerException
+    filters_dict = json.loads(filters)
+    if not filters_dict:
+        raise BadRequestException("No filters found in request parameters")
+    results = handler._filter_from(
+        filters=filters_dict.get("filters", {}),
+        format=filters_dict.get("format", {})
+    )
+    return results
     
 @router.post("/")
+@centralized_error_handling
 async def create_project(
     response: Response,
     project_data: ProjectModel, 
     handler: ProjectHandler = Depends(get_project_handler)
     ):
-    try:
-        project_data = jsonable_encoder(project_data)
-        session_id, project_id = handler.create_new_project(project_data)
-        if session_id and project_id:
-            response.set_cookie(
-                key=SessionHandler.SESSION_COOKIE_NAME,
-                value=session_id,
-                httponly=True,
-                max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
-            )
-            return session_id,
-    except HTTPException: raise
-    except Exception as e:
-        traceback.print_exc()
-        raise InternalServerException
+    project_data = jsonable_encoder(project_data)
+    session_id, project_id = handler.create_new_project(project_data)
+    if session_id and project_id:
+        response.set_cookie(
+            key=SessionHandler.SESSION_COOKIE_NAME,
+            value=session_id,
+            httponly=True,
+            max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
+        )
+        return session_id,
     
 @router.post("/join/{session_id}")
+@centralized_error_handling
 async def join_project(
     response: Response,
     session_id: str,
     username: str,
     handler: ProjectHandler = Depends(get_project_handler)
     ):
-    try:
-        session_participant_id = handler.join_project(session_id, username)
-        if session_participant_id:
-            response.set_cookie(
-                key=SessionHandler.SESSION_COOKIE_NAME,
-                value=session_id,
-                httponly=True,
-                max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
-            )
-        return session_participant_id
-    except HTTPException: raise
-    except Exception as e:
-        traceback.print_exc() 
-        raise InternalServerException
+    session_participant_id = handler.join_project(session_id, username)
+    if session_participant_id:
+        response.set_cookie(
+            key=SessionHandler.SESSION_COOKIE_NAME,
+            value=session_id,
+            httponly=True,
+            max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
+        )
+    return session_participant_id
 
 @router.delete("/{project_id}")
+@centralized_error_handling
 async def delete_project(
     project_id: int,
     session_id: str,
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
-    try:
-        delete_success = handler.delete_projects(
-            project_id=project_id,
-            session_id=session_id
-        )
-        if delete_success:
-            return "success"
-        else:
-            return "error"
-    except HTTPException: raise
-    except Exception as e:
-        traceback.print_exc() 
-        raise InternalServerException
+    delete_success = handler.delete_projects(
+        project_id=project_id,
+        session_id=session_id
+    )
+    return "success" if delete_success else "error"

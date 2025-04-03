@@ -1,8 +1,21 @@
 from fastapi import HTTPException
+import traceback
 
 class NoniAPIException(HTTPException):
     def __init__(self, status_code: int, detail: str):
         super().__init__(status_code=status_code, detail={"error": detail})
+
+def centralized_error_handling(func):
+    """Centralized error handling to the API routes"""
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            traceback.print_exc()
+            raise InternalServerException(detail=str(e))
+    return wrapper
 
 class UnauthorizedException(NoniAPIException):
     def __init__(self, detail: str = "Unauthorized. Session ID might be missing"):
