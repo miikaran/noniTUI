@@ -1,0 +1,28 @@
+@startuml
+!theme toy
+
+title Task addition
+
+actor User
+participant TUI
+participant Server
+
+autonumber
+
+User ->> TUI : Presses keyboard shortcut
+activate TUI
+TUI ->> TUI : Opens task-modal
+User ->> TUI : Fills modal fields
+
+alt all required fields are filled
+  User ->> TUI : presses keyboard shortcut to submit
+  TUI ->> Server : Update changes
+  activate Server
+  Server ->> TUI : Update management screen with new task
+  deactivate Server
+else all required fields are NOT filled
+  TUI ->> User : Notify of missing fields
+end
+deactivate TUI
+
+@enduml
