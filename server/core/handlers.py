@@ -7,7 +7,7 @@ import uuid
 from core.utils.exceptions import BadRequestException, NotFoundException, ConflictException, InternalServerException, NoniAPIException, UnauthorizedException
 
 class HandlerInterface:
-    """Represents a generic interface for handling database requests"""
+    """Represents a generic interface for handling API requests for database stuff"""
     def __init__(self, db: object, target_model: object):
         self.db = db
         self.model = target_model(db)
