@@ -12,6 +12,7 @@ class TasksModel(SQLInterface):
             ("description", str),
             ("start_date", datetime),
             ("end_date", datetime),
+            ("added_at", datetime),
             ("task_type", str)
         ])
         self.set_clauses({

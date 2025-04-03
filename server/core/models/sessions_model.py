@@ -18,6 +18,9 @@ class SessionParticipantsModel(SQLInterface):
     def __init__(self, db_conn):
         super().__init__(db_conn)
         self.set_table("session_participants")
+        self.set_autofilled_columns([
+            ("participant_id", int)
+        ])
         self.set_columns([
             ("session_uuid", str),
             ("participant_name", str),

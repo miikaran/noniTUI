@@ -10,12 +10,16 @@ class SQLInterface:
         self.table = None
         self.columns = []
         self.clauses = {}
+        self.autofilled_columns = []
     
     def set_table(self, table):
         self.table = table
 
     def set_columns(self, columns):
         self.columns = columns
+    
+    def set_autofilled_columns(self, columns):
+        self.autofilled_columns = columns
 
     def set_clauses(self, clauses):
         self.clauses = clauses
@@ -70,8 +74,9 @@ class SQLInterface:
         return sql.SQL("").join(query_params)
 
     def create_format_params(self):
+        columns = [*self.autofilled_columns, *self.columns]
         return {
-            "columns": sql.SQL(", ").join(sql.Identifier(col) for col, type in self.columns),
+            "columns": sql.SQL(", ").join(sql.Identifier(col) for col, type in columns),
             "table": sql.Identifier(self.table)
         }
 

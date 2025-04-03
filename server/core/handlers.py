@@ -4,7 +4,7 @@ from .models.tasks_model import TasksModel
 from .models.sessions_model import SessionsModel, SessionParticipantsModel
 from datetime import datetime, timedelta
 import uuid
-from server.core.utils.exceptions import BadRequestException, NotFoundException, ConflictException, InternalServerException, NoniAPIException
+from core.utils.exceptions import BadRequestException, NotFoundException, ConflictException, InternalServerException, NoniAPIException, UnauthorizedException
 
 class HandlerInterface:
     """Represents a generic interface for handling database requests"""
@@ -102,7 +102,6 @@ class ProjectHandler(HandlerInterface):
         if not success:
             raise InternalServerException("Failed to create a new project")
         success, session_id = SessionHandler(self.db).create_session({"project_id": project_id})
-        is_valid = SessionHandler(self.db).is_valid_session(project_id=project_id)
         if not (success and session_id):
             # Remove the new project if couldn't create a session for it
             deleted = self.delete_projects(project_id=project_id)
@@ -114,7 +113,7 @@ class ProjectHandler(HandlerInterface):
             raise InternalServerException("Failed to create a new project")
         # Otherwise -> return the session id & project_id for joining
         return session_id, project_id
-        
+            
     def add_project(self, project_data={}):
         """Method for adding new project record"""
         timestamp = datetime.now()
@@ -133,8 +132,12 @@ class ProjectHandler(HandlerInterface):
             return_col="project_id"
         )
             
-    def delete_projects(self, project_id=None, filters={}):   
+    def delete_projects(self, project_id=None, filters={}, session_id=None):   
         """Method for deleting project with id or filters"""
+        if session_id and project_id:
+            is_valid = SessionHandler(self.db).is_valid_session(session_id=session_id)
+            if not is_valid:
+                raise InternalServerException("Invalid session for deleting projects")
         return self.delete_record(
             id=project_id,
             filters=filters,
@@ -158,11 +161,10 @@ class ProjectHandler(HandlerInterface):
         )
 
     def join_project(self, session_id, username):
-        """Method for joining projects current session"""
+        """Method for joining projects current session aka adding user as session participant"""
         session_participant_handler = SessionParticipantHandler(self.db)
         participant_id = session_participant_handler.add_session_participant(session_id, username)
         return participant_id
-
 
 class SessionHandler(HandlerInterface):
     """Represents a handler used to handle project sessions"""
@@ -171,17 +173,38 @@ class SessionHandler(HandlerInterface):
         # Not sure is this field necessary in the db
         self.valid_until = self.get_valid_until(365)
 
-    def get_project_session(self, project_id):
-        if not project_id:
-            raise BadRequestException("Project ID not provided for querying")
-        
+    def is_participant_in_session(self, session_id, participant_id):
+        """Check whether participant is in a session"""
+        participant_handler = SessionParticipantHandler(self.db)
+        participant_ids = [
+            row["participant_id"] 
+            for row in participant_handler.get_session_participants(session_id)
+            ]
+        if len(participant_ids) < 1:
+            return False
+        if participant_id in participant_ids:
+            return True
+        return False
+
+    def get_session(self, session_id):
+        """Get session with session id"""
+        if not session_id:
+            raise BadRequestException("No session id provided")
+        return self._filter_from(
+            filters=[{
+                "col": "session_id",
+                "clause": "sessions_equals",
+                "value": str(session_id)
+            }]
+        )[0]
+          
     def get_valid_until(self, days_from_now, date_format="%m/%d/%Y, %H:%M:%S"):
         """Method for getting datetime object x days in the future as a formatted string"""
         return datetime.today() + timedelta(days=days_from_now)
     
     def create_session(self, session_data={}):
         """Method used to create a new session record"""
-        return self.add_record(
+        session_id = self.add_record(
             data={
                 **session_data,
                 "session_id": str(uuid.uuid4()),
@@ -189,18 +212,19 @@ class SessionHandler(HandlerInterface):
             },
             required_cols=["project_id"],
             return_col="session_id"
-        )
+        )[0]["session_id"]
+        if not session_id:
+            raise InternalServerException("Could not create a session")
+        return session_id
 
     def is_valid_session(self, session_id=None, project_id=None):
         """Check if valid session by session_id or project_id"""
         target_col = None
-        target_value = None
+        target_value = session_id or project_id
         if session_id:
             target_col = "session_id"
-            target_value = session_id
         elif project_id:
             target_col = "project_id"
-            target_value = project_id
         if target_col and target_value:
             session_data = self._filter_from(
                 [{
@@ -217,43 +241,45 @@ class SessionHandler(HandlerInterface):
             return False, valid_until
         raise BadRequestException("Session ID or Project ID not found for querying session")
 
-
 class SessionParticipantHandler(HandlerInterface):
     def __init__(self, db):
         super().__init__(db=db, target_model=SessionParticipantsModel)
 
-    def get_session_participants_by_id(self, session_id=None, project_id=None):
-        """Get session participants with project id or session id"""
-        if not (session_id or project_id):
-            raise BadRequestException("Session ID or Project ID not provided for querying")
-        if session_id:
-            return self._filter_from(
-                filters=[{
-                    "col": "session_uuid",
-                    "clause": "session_participant_equals",
-                    "value": str(session_id)
+    def get_session_participants(self, session_id):
+        """Get session participants with session id"""
+        if not session_id:
+            raise BadRequestException("No session id provided")
+        return self._filter_from(
+            filters=[{
+                "col": "session_uuid",
+                "clause": "session_participant_equals",
+                "value": str(session_id)
+            }]
+        )
+    
+    def get_session_participants_by_project_id(self, project_id):
+        """Get session participants by the project id"""
+        if not project_id:
+            raise BadRequestException("No project id provided")          
+        sessions_for_project = SessionHandler(self.db)._filter_from(
+            filters=[{
+                "col": "project_id", 
+                "clause": "sessions_equals", 
+                "value": int(project_id)
                 }]
-            )
-        # Get session participants for a specific project id
-        if project_id:
-            sessions_for_project = SessionHandler(self.db)._filter_from(
-                filters=[{
-                    "col": "project_id", 
-                    "clause": "sessions_equals", 
-                    "value": int(project_id)
+        )
+        if len(sessions_for_project) > 0:
+            session_ids = tuple([row["session_id"] for row in sessions_for_project])
+            for id in session_ids:
+                return self._filter_from(
+                    filters=[{
+                        "col": "session_uuid",
+                        "clause": "session_participant_equals_in",
+                        "value": session_ids,
+                        "operator": " AND "
                     }]
-            )
-            if len(sessions_for_project) > 0:
-                session_ids = tuple([row["session_id"] for row in sessions_for_project])
-                for id in session_ids:
-                    return self._filter_from(
-                        filters=[{
-                            "col": "session_uuid",
-                            "clause": "session_participant_equals_in",
-                            "value": session_ids,
-                            "operator": " AND "
-                        }]
-                    )
+                )  
+        raise NotFoundException(f"Sessions not found for project_id: {project_id}")
 
     def add_session_participant(self, session_id, username):
         """Add new session participant to a existing session"""
@@ -275,6 +301,80 @@ class SessionParticipantHandler(HandlerInterface):
 class TaskHandler(HandlerInterface):
     def __init__(self, db):
         super().__init__(db=db,target_model=TasksModel)
+
+    def add_task(self, task_data, session_id):
+        """Add new task to project"""
+        if not (task_data and session_id):
+            raise BadRequestException("Task data or session id not found ")
+        session_handler = SessionHandler(self.db)
+        session_exists = session_handler.is_valid_session(session_id=str(session_id))
+        if not session_exists:
+            raise UnauthorizedException(f"Session with id: {session_id} not found")
+        session_data = SessionHandler.get_session(session_id)
+        project_id = session_data["project_id"]
+        if not project_id:
+            raise NotFoundException(f"Project not found for session id: {session_id}")
+        task_id = self.add_record(
+            data={
+                **task_data,
+                "project_id": int(project_id), 
+                "added_at": datetime.now()
+            },
+            required_cols=["project_id", "name", "assignee", "task_type"],
+            return_col="id"
+            )
+        if not task_id:
+            raise InternalServerException(f"Failed to create task for project: {project_id}. ID not returned")
+        return task_id
+
+    def update_task(self, task_data, session_id):
+        """Update task in project"""
+        if not (task_data and session_id):
+            raise BadRequestException("Task data or session id not found ")
+        session_handler = SessionHandler(self.db)
+        session_exists = session_handler.is_valid_session(session_id=str(session_id))
+        if not session_exists:
+            raise UnauthorizedException(f"Session with id: {session_id} not found")
+        session_data = SessionHandler.get_session(session_id)
+        project_id = session_data["project_id"]
+        if not project_id:
+            raise NotFoundException(f"Project not found for session id: {session_id}")
+        task_id = task_data["id"]
+        if not task_id:
+            raise BadRequestException(f"Task ID not found for updating in project: {project_id}")
+        success = self.update_record(
+            id=task_id,
+            updated_data={
+                **task_data,
+                "project_id": int(project_id), 
+            },
+            clauses=[{
+                "col": "project_id",
+                "clause": "tasks_equals",
+                "value": int(project_id)
+            }]
+            )
+        if not success:
+            raise InternalServerException(f"Failed to update task {task_id} for project: {project_id}")
+        return success
+
+    def delete_task(self, task_id, session_id):
+        """Delete task from project"""
+        if not (task_id and session_id):
+            raise BadRequestException("Task data not found ")
+        session_handler = SessionHandler(self.db)
+        session_exists = session_handler.is_valid_session(session_id=str(session_id))
+        if not session_exists:
+            raise UnauthorizedException(f"Session with id: {session_id} not found")
+        session_data = SessionHandler.get_session(session_id)
+        project_id = session_data["project_id"]
+        success = self.delete_record(
+            id=task_id,
+            clauses={"clauses": [{"col": "id", "clause": "tasks_equals", "value": int(task_id)}]}
+        )
+        if not success:
+            raise InternalServerException(f"Failed to delete task {task_id} from project: {project_id}")
+        return success
 
 class MessageHandler(HandlerInterface):
     def __init__(self, db):

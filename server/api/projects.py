@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query
-from server.core.utils.database import get_db
+from core.utils.database import get_db
 from core.handlers import ProjectHandler
 from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
 import json
-from server.core.utils.exceptions import InternalServerException, BadRequestException
+from core.utils.exceptions import InternalServerException, BadRequestException
 from fastapi.encoders import jsonable_encoder
 import traceback 
-
 
 router = APIRouter(prefix="/projects")
 
@@ -103,6 +102,24 @@ async def join_project(
         session_participant_id = handler.join_project(session_id, username)
         if session_participant_id:
             return {"session_participant_id": session_participant_id}
+    except HTTPException: raise
+    except Exception as e:
+        traceback.print_exc() 
+        raise InternalServerException
+
+@router.delete("/{project_id}")
+async def delete_project(
+    project_id: int,
+    session_id: str,
+    handler: ProjectHandler = Depends(get_project_handler)
+    ):
+    try:
+        delete_success = handler.delete_projects(
+            project_id=project_id,
+            session_id=session_id
+        )
+        if delete_success:
+            return "success"
     except HTTPException: raise
     except Exception as e:
         traceback.print_exc() 

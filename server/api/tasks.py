@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from core.database import get_db
+from core.utils.database import get_db
 
 router = APIRouter(prefix="/tasks")
 

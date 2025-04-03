@@ -4,6 +4,10 @@ class NoniAPIException(HTTPException):
     def __init__(self, status_code: int, detail: str):
         super().__init__(status_code=status_code, detail={"error": detail})
 
+class UnauthorizedException(NoniAPIException):
+    def __init__(self, detail: str = "Unauthorized. Session ID might be missing"):
+        super().__init__(status_code=401, detail=detail)
+
 class BadRequestException(NoniAPIException):
     def __init__(self, detail: str = "Bad Request"):
         super().__init__(status_code=400, detail=detail)
