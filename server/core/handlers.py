@@ -99,7 +99,7 @@ class ProjectHandler(HandlerInterface):
     def create_new_project(self, project_data: dict) -> bool | tuple:
         """Method for creating a project, including session"""
         success, project_id = self.add_project(project_data)
-        if not success:
+        if not (success and project_id):
             raise InternalServerException("Failed to create a new project")
         success, session_id = SessionHandler(self.db).create_session({"project_id": project_id})
         if not (success and session_id):
@@ -177,7 +177,7 @@ class SessionHandler(HandlerInterface):
         # Not sure is this field necessary in the db
         self.valid_until = self.get_valid_until(self.SESSION_EXPIRATION_DAYS)
     
-    def check_request_session(self, request):
+    async def check_request_session(self, request):
         """Check session validity from request cookies"""
         session_id = request.cookies.get(self.SESSION_COOKIE_NAME)
         if not session_id:
@@ -185,7 +185,7 @@ class SessionHandler(HandlerInterface):
         is_valid_session = self.is_valid_session(session_id=session_id)
         if not is_valid_session:
             raise NoniAPIException(status_code=403, detail="Session expired or invalid")
-        return True
+        return session_id
 
     def get_session(self, session_id):
         """Get session with session id"""
@@ -197,7 +197,7 @@ class SessionHandler(HandlerInterface):
                 "clause": "sessions_equals",
                 "value": str(session_id)
             }]
-        )[0]
+        )
           
     def get_valid_until(self, days_from_now, date_format="%m/%d/%Y, %H:%M:%S"):
         """Method for getting datetime object x days in the future as a formatted string"""
@@ -213,7 +213,7 @@ class SessionHandler(HandlerInterface):
             },
             required_cols=["project_id"],
             return_col="session_id"
-        )[0]["session_id"]
+        )
         if not session_id:
             raise InternalServerException("Could not create a session")
         return session_id
@@ -301,7 +301,7 @@ class SessionParticipantHandler(HandlerInterface):
         """Add new session participant to a existing session"""
         if not (session_id and username):
             raise BadRequestException("Session ID or Username not found for joining project")
-        participant_id = self.add_record(
+        success, participant_id = self.add_record(
             data={
                 "session_uuid": str(session_id), 
                 "participant_name": username,
@@ -310,7 +310,7 @@ class SessionParticipantHandler(HandlerInterface):
             required_cols=["session_uuid", "participant_name", "joined_at"],
             return_col="participant_id"
             )
-        if not participant_id:
+        if not (success and participant_id):
             raise InternalServerException(f"Failed to add a session participant to session: {session_id}")
         return participant_id
 
@@ -318,14 +318,22 @@ class TaskHandler(HandlerInterface):
     def __init__(self, db):
         super().__init__(db=db,target_model=TasksModel)
 
+    def get_project_tasks(self, project_id):
+        """Get tasks for project"""
+        if not project_id:
+            raise BadRequestException("Project ID not provided")
+        return self._filter_from(
+            filters=[{
+                "col": "project_id",
+                "clause": "tasks_equals",
+                "value": int(project_id)
+            }]
+        )
+
     def add_task(self, task_data, session_id):
         """Add new task to project"""
         if not (task_data and session_id):
             raise BadRequestException("Task data or session id not found ")
-        session_handler = SessionHandler(self.db)
-        session_exists = session_handler.is_valid_session(session_id=str(session_id))
-        if not session_exists:
-            raise UnauthorizedException(f"Session with id: {session_id} not found")
         session_data = SessionHandler.get_session(session_id)
         project_id = session_data["project_id"]
         if not project_id:
@@ -348,10 +356,7 @@ class TaskHandler(HandlerInterface):
         if not (task_data and session_id):
             raise BadRequestException("Task data or session id not found ")
         session_handler = SessionHandler(self.db)
-        session_exists = session_handler.is_valid_session(session_id=str(session_id))
-        if not session_exists:
-            raise UnauthorizedException(f"Session with id: {session_id} not found")
-        session_data = SessionHandler.get_session(session_id)
+        session_data = session_handler.get_session(session_id)
         project_id = session_data["project_id"]
         if not project_id:
             raise NotFoundException(f"Project not found for session id: {session_id}")
@@ -379,10 +384,7 @@ class TaskHandler(HandlerInterface):
         if not (task_id and session_id):
             raise BadRequestException("Task data not found ")
         session_handler = SessionHandler(self.db)
-        session_exists = session_handler.is_valid_session(session_id=str(session_id))
-        if not session_exists:
-            raise UnauthorizedException(f"Session with id: {session_id} not found")
-        session_data = SessionHandler.get_session(session_id)
+        session_data = session_handler.get_session(session_id)
         project_id = session_data["project_id"]
         success = self.delete_record(
             id=task_id,

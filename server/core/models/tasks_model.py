@@ -5,6 +5,9 @@ class TasksModel(SQLInterface):
     def __init__(self, db_conn):
         super().__init__(db_conn)
         self.set_table("tasks")
+        self.set_autofilled_columns([
+            ("id", int)
+        ])
         self.set_columns([
             ("project_id", int),
             ("name", str),

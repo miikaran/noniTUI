@@ -73,8 +73,9 @@ class SQLInterface:
             query_params.append(sql.SQL(operator))
         return sql.SQL("").join(query_params)
 
-    def create_format_params(self):
-        columns = [*self.autofilled_columns, *self.columns]
+    def create_format_params(self, include_autofilled=False):
+        if include_autofilled: columns = [*self.autofilled_columns, *self.columns]
+        else: columns = [*self.columns]
         return {
             "columns": sql.SQL(", ").join(sql.Identifier(col) for col, type in columns),
             "table": sql.Identifier(self.table)
@@ -93,7 +94,7 @@ class SQLInterface:
         return True
 
     def insert(self, values, returning=""):
-        params = self.create_format_params()
+        params = self.create_format_params(include_autofilled=False)
         values_list = []
         for row in values:
             print(row)
@@ -120,7 +121,7 @@ class SQLInterface:
             )
             self.execute_query(all_query)
             return self.cursor.fetchall()
-        format_params = self.create_format_params()
+        format_params = self.create_format_params(include_autofilled=True)
         query_params = self.create_query_params(params)
         format_params.update({"clauses": query_params})
         query = sql.SQL("SELECT {columns} FROM {table} WHERE {clauses}").format(
@@ -152,9 +153,9 @@ class SQLInterface:
     def delete(self, params):
         params.update({"clauses": self.create_query_params(params.get("clauses"))})
         target_table = self.table
+        params["table"] = sql.Identifier(target_table)
         query = sql.SQL("DELETE FROM {table} WHERE {clauses}").format(
-            **params,
-            table=target_table
+            **params
         )
         print("EXEUCTING:", query.as_string(self.conn))
         self.execute_query(query)

@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 import traceback
+from functools import wraps
 
 class NoniAPIException(HTTPException):
     def __init__(self, status_code: int, detail: str):
@@ -7,14 +8,13 @@ class NoniAPIException(HTTPException):
 
 def centralized_error_handling(func):
     """Centralized error handling to the API routes"""
+    @wraps(func)  # <- Uses the route handler function signature to avoid messing up fastapi stuff
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except HTTPException as e:
-            raise e
         except Exception as e:
             traceback.print_exc()
-            raise InternalServerException(detail=str(e))
+            raise InternalServerException(detail="Error occurred on the serverside")
     return wrapper
 
 class UnauthorizedException(NoniAPIException):
