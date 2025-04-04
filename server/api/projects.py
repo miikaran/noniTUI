@@ -2,12 +2,10 @@ from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query, Res
 from core.utils.database import get_db
 from core.handlers import ProjectHandler, SessionHandler
 from pydantic import BaseModel, Field
-from typing import Annotated, Dict, Optional, Any
+from typing import Annotated, Dict, Optional, Any, List
 from datetime import datetime
-import json
 from core.utils.exceptions import InternalServerException, BadRequestException, NoniAPIException, centralized_error_handling
 from fastapi.encoders import jsonable_encoder
-import traceback 
 
 router = APIRouter(prefix="/projects")
 
@@ -18,26 +16,27 @@ class ProjectModel(BaseModel):
     modified_at: Annotated[datetime, Body()] = Field(None)
 
 class FilterModel(BaseModel):
-    filters: Dict[str, Any]
+    filters: List[Dict[str, Any]] = []
     format: Optional[Dict[str, Any]] = {}
 
 def get_project_handler(db=Depends(get_db)):
     return ProjectHandler(db)
 
-def check_request_session(db=Depends(get_db)):
-    return SessionHandler(db).check_request_session
+async def check_request_session(request: Request, db=Depends(get_db)):
+    session_handler = SessionHandler(db)
+    return await session_handler.check_request_session(request)
 
-@router.get("/all")
 @centralized_error_handling
+@router.get("/all")
 async def get_all_projects(
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
     results = handler._get_all()
-    return {"results": results}
+    return results
     
-@router.get("/{project_id}")
 @centralized_error_handling
+@router.get("/{project_id}")
 async def get_project_by_id(
     project_id: int,
     handler: ProjectHandler = Depends(get_project_handler),
@@ -54,24 +53,25 @@ async def get_project_by_id(
     )
     return results
 
-@router.get("/")
 @centralized_error_handling
+@router.post("/")
 async def filter_projects(
-    filters: str = Query(..., description="Filters as JSON String"),
+    filters: FilterModel,
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
-    filters_dict = json.loads(filters)
-    if not filters_dict:
+    filter_data = filters.filters
+    format_data = filters.format
+    if not filter_data:
         raise BadRequestException("No filters found in request parameters")
     results = handler._filter_from(
-        filters=filters_dict.get("filters", {}),
-        format=filters_dict.get("format", {})
+        filters=filter_data,
+        format=format_data
     )
     return results
     
-@router.post("/")
 @centralized_error_handling
+@router.post("/")
 async def create_project(
     response: Response,
     project_data: ProjectModel, 
@@ -87,9 +87,11 @@ async def create_project(
             max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
         )
         return session_id,
-    
-@router.post("/join/{session_id}")
+    else:
+        raise InternalServerException("Something went wrong while creating project.")
+
 @centralized_error_handling
+@router.post("/join/{session_id}")
 async def join_project(
     response: Response,
     session_id: str,
@@ -104,18 +106,20 @@ async def join_project(
             httponly=True,
             max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
         )
-    return session_participant_id
+        return session_participant_id
+    else:
+        raise InternalServerException("Something went wrong while joining project")
 
-@router.delete("/{project_id}")
 @centralized_error_handling
+@router.delete("/{project_id}")
 async def delete_project(
     project_id: int,
-    session_id: str,
     handler: ProjectHandler = Depends(get_project_handler),
     valid_session: bool = Depends(check_request_session)
     ):
+    """This does not currently work because of postgre constraint stuff"""
     delete_success = handler.delete_projects(
         project_id=project_id,
-        session_id=session_id
+        session_id=valid_session
     )
     return "success" if delete_success else "error"

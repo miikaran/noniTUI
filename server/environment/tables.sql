@@ -44,7 +44,7 @@ CREATE TABLE tasks (
     start_date DATE,
     end_date DATE,
     added_at TIMESTAMP,
-    task_type VARCHAR(10) NOT NULL CHECK (task_type IN ('todo', 'in-progress', 'backlog', 'done')) DEFAULT 'todo'
+    task_type VARCHAR(20) NOT NULL CHECK (task_type IN ('todo', 'in-progress', 'backlog', 'done')) DEFAULT 'todo'
 );
 
 -- Table: tasks_enrichment

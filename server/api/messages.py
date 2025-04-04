@@ -19,8 +19,8 @@ class MessageModel(BaseModel):
 def get_message_handler(db=Depends(get_db)):
     return MessageHandler(db)
 
-@router.get("/")
 @centralized_error_handling
+@router.get("/")
 async def filter_messages(
     filters: str = Query(..., description="Filters messages as JSON String"),
     handler: MessageHandler = Depends(get_message_handler)
@@ -34,8 +34,8 @@ async def filter_messages(
     )
     return {"results": results}
 
-@router.post("/")
 @centralized_error_handling
+@router.post("/")
 async def create_message(
     message_data: MessageModel, 
     handler: MessageHandler = Depends(get_message_handler)

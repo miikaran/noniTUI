@@ -2,9 +2,13 @@ from fastapi import FastAPI
 import uvicorn
 from api import projects, messages, tasks
 
+"""
+If the debug is on, the errors raised during handling will be returned to client by FastAPI by default,
+and the centralized_error_handler won't work. If it is set to False, then it should handle exceptions properly
+"""
 app = FastAPI(
     title="NoniAPI",
-    debug=True
+    debug=False
 )
 
 app.include_router(projects.router)
