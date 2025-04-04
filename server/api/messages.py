@@ -7,6 +7,10 @@ from core.handlers import MessageHandler
 from core.utils.exceptions import InternalServerException, BadRequestException, centralized_error_handling
 import json
 
+##################################################
+# API routes for message related functionalities #
+##################################################
+
 router = APIRouter(prefix="/messages")
 
 class MessageModel(BaseModel):

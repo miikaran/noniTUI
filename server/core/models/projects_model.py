@@ -5,6 +5,9 @@ class ProjectsModel(SQLInterface):
     def __init__(self, db_conn):
         super().__init__(db_conn)
         self.set_table("projects")
+        self.set_autofilled_columns([
+            ("project_id", int)
+        ])
         self.set_columns([
             ("project_name", str),
             ("description", str),

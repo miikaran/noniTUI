@@ -8,6 +8,10 @@ from core.utils.exceptions import InternalServerException, BadRequestException, 
 from fastapi.encoders import jsonable_encoder
 from api.projects import FilterModel
 
+##################################################
+# API routes for tasks related functionalities   #
+##################################################
+
 router = APIRouter(prefix="/tasks")
 
 class TaskModel(BaseModel):
