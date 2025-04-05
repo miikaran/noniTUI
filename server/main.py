@@ -1,9 +1,7 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI
 import uvicorn
 from api import projects, messages, tasks, websockets
 from core.utils.exceptions import centralized_error_handling
-from api.projects import check_request_session
-from server.core.websocket_manager import WebsocketManager
 
 """
 If the debug property is True, the errors raised during request handling will be returned to client by FastAPI by default,
