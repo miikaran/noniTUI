@@ -38,28 +38,22 @@ class NotificationListener(SQLInterface):
                 notify = self.conn.notifies.pop(0)
                 print(f"Received PostgreSQL notification: {notify.payload}")
                 self.handle_notification(notify.payload)
-
+                
     def start_up(self, project_id, session_id=None):
         for channel_prefix in self.whitelisted_channels_prefixes:
             final_channel_name = f"{channel_prefix}{project_id}"
-            listener = NotificationListener(
-                db_conn=self.conn,
-                websocket_manager=self.websocket_manager,
-                channel_name=final_channel_name
-            )
             loop = asyncio.get_event_loop()
-            task = loop.create_task(asyncio.to_thread(listener.listen, channel=final_channel_name))
-            async def handle_notification(message: str):
-                # This is the function that will trigger when 
-                updated_row_json = json.loads(message)
-                await self.websocket_manager.broadcast_to_session(updated_row_json)
-            listener.handle_notification = handle_notification
+            task = loop.create_task(asyncio.to_thread(self.listen, channel=final_channel_name))
             self.active_tasks[final_channel_name] = task
             if session_id:
                 # Store session id here as well to clean unnecessary tasks
                 self.session_id = session_id
             # Add background task to clean hanging listening tasks
             loop.create_task(self.cleaner(interval_seconds=30*(60*1000)))
+
+    async def handle_notification(self, message: str):
+        updated_row_json = json.loads(message)
+        await self.websocket_manager.broadcast_to_session(updated_row_json)
 
     def should_cancel_channel(self, session_id):
         session_participants = self.websocket_manager.active_connections[session_id]
