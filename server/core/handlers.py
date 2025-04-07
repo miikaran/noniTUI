@@ -198,7 +198,7 @@ class SessionHandler(HandlerInterface):
                 "value": str(session_id)
             }]
         )
-          
+    
     def get_valid_until(self, days_from_now, date_format="%m/%d/%Y, %H:%M:%S"):
         """Method for getting datetime object x days in the future as a formatted string"""
         return datetime.today() + timedelta(days=days_from_now)
