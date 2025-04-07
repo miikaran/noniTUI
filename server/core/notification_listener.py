@@ -22,7 +22,8 @@ class NotificationListener(SQLInterface):
             "messages_channel_",
             "projects_channel_"
             "sessions_channel_"
-            "tasks_channel_"
+            "tasks_channel_",
+            "session_participants_channel_"
         ]
 
     def handle_notification(self, notification):

@@ -25,4 +25,4 @@ async def websocket_endpoint(
             await websocket_manager.broadcast(f"Client #{participant_id} says: {data}")
     except WebSocketDisconnect:
         websocket_manager.disconnect(session_id, websocket)
-        await websocket_manager.broadcast(f"Client #{participant_id} left the chat")
+        await websocket_manager.broadcast(f"Client #{participant_id} disconnected")

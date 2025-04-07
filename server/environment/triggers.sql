@@ -56,3 +56,22 @@ AFTER DELETE
 ON messages
 FOR EACH ROW
 EXECUTE PROCEDURE notify_changes_after_insert();
+
+-- TABLE: session_participants
+CREATE TRIGGER trigger_notify_session_participants_insert
+AFTER INSERT
+ON session_participants
+FOR EACH ROW
+EXECUTE PROCEDURE notify_changes_after_insert();
+
+CREATE TRIGGER trigger_notify_session_participants_update
+AFTER UPDATE
+ON session_participants
+FOR EACH ROW
+EXECUTE PROCEDURE notify_changes_after_insert();
+
+CREATE TRIGGER trigger_notify_session_participants_delete
+AFTER DELETE
+ON session_participants
+FOR EACH ROW
+EXECUTE PROCEDURE notify_changes_after_insert();

@@ -16,12 +16,11 @@ class WebsocketManager:
             await websocket.send_text(f"Session ID or participant ID not found in path, byebye")
             await websocket.close(code=1000)
         if session_id not in self.active_connections:
-            self.active_connections[session_id] = {}
-            # Initialize the notification listener only after session has more than 1 participant
             project_id = self.session_handler.get_session(session_id=session_id)[0]["project_id"]
             if not project_id:
                 await websocket.send_text(f"Project ID not found for session ID: {session_id}, byebye")
                 await websocket.close(code=1000)
+            self.active_connections[session_id] = {}
             notification_listener = NotificationListener(
                 db_conn=get_db(),
                 websocket_manager=self,
