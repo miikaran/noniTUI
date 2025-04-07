@@ -49,7 +49,7 @@ class NotificationListener(SQLInterface):
                 # Store session id here as well to clean unnecessary tasks
                 self.session_id = session_id
             # Add background task to clean hanging listening tasks
-            loop.create_task(self.cleaner(interval_seconds=30*(60*1000)))
+            loop.create_task(self.cleaner(interval_seconds=30*60))
 
     async def handle_notification(self, message: str):
         updated_row_json = json.loads(message)
