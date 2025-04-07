@@ -330,69 +330,68 @@ class TaskHandler(HandlerInterface):
             }]
         )
 
-    def add_task(self, task_data, session_id):
+    def add_task_to_project(self, task_data, session_id):
         """Add new task to project"""
-        if not (task_data and session_id):
-            raise BadRequestException("Task data or session id not found ")
-        session_data = SessionHandler.get_session(session_id)
-        project_id = session_data["project_id"]
-        if not project_id:
-            raise NotFoundException(f"Project not found for session id: {session_id}")
-        task_id = self.add_record(
-            data={
-                **task_data,
-                "project_id": int(project_id), 
-                "added_at": datetime.now()
-            },
-            required_cols=["project_id", "name", "assignee", "task_type"],
-            return_col="id"
-            )
-        if not task_id:
-            raise InternalServerException(f"Failed to create task for project: {project_id}. ID not returned")
-        return task_id
-
-    def update_task(self, task_data, session_id):
-        """Update task in project"""
         if not (task_data and session_id):
             raise BadRequestException("Task data or session id not found ")
         session_handler = SessionHandler(self.db)
         session_data = session_handler.get_session(session_id)
-        project_id = session_data["project_id"]
+        project_id = session_data[0]["project_id"]
         if not project_id:
             raise NotFoundException(f"Project not found for session id: {session_id}")
-        task_id = task_data["id"]
-        if not task_id:
-            raise BadRequestException(f"Task ID not found for updating in project: {project_id}")
+        timestamp = datetime.now()
+        success, task_id = self.add_record(
+            data={
+                **task_data,
+                "project_id": int(project_id), 
+                "added_at": timestamp,
+                "start_date": datetime.fromisoformat((task_data["start_date"])),
+                "end_date": datetime.fromisoformat((task_data["end_date"]))
+            },
+            required_cols=["project_id", "name", "assignee", "task_type"],
+            return_col="id"
+            )
+        if not success:
+            raise InternalServerException(f"Failed to create task for project: {project_id}. ID not returned")
+        return task_id
+
+    def update_project_task(self, task_data, task_id):
+        """Update task in project"""
+        if not (task_data and task_id):
+            raise BadRequestException("Task data or task id not found ")    
+        project_id = task_data["project_id"]
         success = self.update_record(
             id=task_id,
             updated_data={
-                **task_data,
-                "project_id": int(project_id), 
+                "columns": {
+                    **task_data,
+                    "project_id": int(project_id),
+                } 
             },
             clauses=[{
-                "col": "project_id",
+                "col": "id",
                 "clause": "tasks_equals",
-                "value": int(project_id)
+                "value": int(task_id)
             }]
             )
         if not success:
             raise InternalServerException(f"Failed to update task {task_id} for project: {project_id}")
-        return success
+        return task_id
 
-    def delete_task(self, task_id, session_id):
+    def delete_task_from_project(self, task_id, session_id):
         """Delete task from project"""
         if not (task_id and session_id):
             raise BadRequestException("Task data not found ")
         session_handler = SessionHandler(self.db)
         session_data = session_handler.get_session(session_id)
-        project_id = session_data["project_id"]
+        project_id = session_data[0]["project_id"]
         success = self.delete_record(
             id=task_id,
-            clauses={"clauses": [{"col": "id", "clause": "tasks_equals", "value": int(task_id)}]}
+            clauses=[{"col": "id", "clause": "tasks_equals", "value": int(task_id)}]
         )
         if not success:
             raise InternalServerException(f"Failed to delete task {task_id} from project: {project_id}")
-        return success
+        return task_id
 
 class MessageHandler(HandlerInterface):
     def __init__(self, db):

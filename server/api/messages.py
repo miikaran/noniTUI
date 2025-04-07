@@ -11,7 +11,7 @@ import json
 # API routes for message related functionalities #
 ##################################################
 
-router = APIRouter(prefix="/messages")
+router = APIRouter(prefix="/messages", tags=["Messages"])
 
 class MessageModel(BaseModel):
     project_id: int = Field()

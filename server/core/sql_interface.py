@@ -85,6 +85,7 @@ class SQLInterface:
         for row in values:
             for i, value in enumerate(row):
                 target_col = self.columns[i]
+                print(target_col, value)
                 if not target_col:
                     continue
                 target_type = target_col[1]
