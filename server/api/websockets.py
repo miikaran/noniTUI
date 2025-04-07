@@ -1,6 +1,5 @@
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends
 from core.utils.exceptions import centralized_error_handling
-from api.projects import check_request_session
 from core.websocket_manager import WebsocketManager
 
 ##################################################
