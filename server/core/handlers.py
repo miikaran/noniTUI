@@ -177,7 +177,7 @@ class SessionHandler(HandlerInterface):
         # Not sure is this field necessary in the db
         self.valid_until = self.get_valid_until(self.SESSION_EXPIRATION_DAYS)
     
-    async def check_request_session(self, request):
+    async def check_request_session(self, request=None):
         """Check session validity from request cookies"""
         session_id = request.cookies.get(self.SESSION_COOKIE_NAME)
         if not session_id:
