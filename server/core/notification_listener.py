@@ -1,9 +1,7 @@
-from sql_interface import SQLInterface
+from core.sql_interface import SQLInterface
 import asyncio
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from abc import abstractmethod
 import json
-from websocket_manager import WebsocketManager
 
 class NotificationListener(SQLInterface):
     def __init__(self, db_conn, websocket_manager):

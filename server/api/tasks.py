@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Body, Request, Path
 from core.utils.database import get_db
 from core.handlers import TaskHandler, SessionHandler
 from pydantic import BaseModel, Field
-from typing import Annotated
+from typing import Annotated, Optional
 from datetime import datetime
 from core.utils.exceptions import BadRequestException, centralized_error_handling
 from fastapi.encoders import jsonable_encoder
@@ -19,12 +19,12 @@ class TaskModel(BaseModel):
     Schema for creating and updating tasks.
     Represents a task that is associated with a project.
     """
-    project_id: int = Field(..., description="ID of the project this task belongs to")
+    project_id: Optional[int] = Field(None, description="ID of the project this task belongs to")
     name: str = Field(..., max_length=255, description="The name of the task")
     assignee: str = Field(..., max_length=255, description="The person assigned to the task")
     description: str = Field(..., max_length=300, description="Detailed description of the task")
-    start_date: Annotated[datetime, Body()] = Field(None, description="The start date of the task")
-    end_date: Annotated[datetime, Body()] = Field(None, description="The end date of the task")
+    start_date: Annotated[datetime, Body()] = Field(..., description="The start date of the task")
+    end_date: Annotated[datetime, Body()] = Field(..., description="The end date of the task")
     task_type: str = Field(default="todo", max_length=20, description="The type of the task (default is 'todo')")
     
 def get_task_handler(db=Depends(get_db)):
@@ -106,7 +106,6 @@ async def add_task_to_project(
     - **task_data**: JSON body containing the task's details (name, assignee, description, etc.).
     - **Returns**: The ID of the newly created task.
     - **Requires**: A valid session token.
-    - **Sets Cookie**: The session ID will be stored in an HTTP-only cookie.
     """
     task_data = jsonable_encoder(task_data)
     task_id = handler.add_task_to_project(task_data, valid_session)
@@ -128,7 +127,7 @@ async def update_project_task(
     - **Requires**: A valid session token.
     """
     task_data = jsonable_encoder(task_data)
-    task_id = handler.update_project_task(task_data, task_id)
+    task_id = handler.update_project_task(task_data, task_id, valid_session)
     return task_id
 
 @centralized_error_handling

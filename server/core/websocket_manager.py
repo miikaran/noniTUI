@@ -8,7 +8,7 @@ class WebsocketManager:
     def __init__(self):
         # Stored in format -> {<session_id>: {<participant_id>: WebSocket}}
         self.active_connections : Dict[str, Dict[str, WebSocket]] = {}
-        self.session_handler = SessionHandler(get_db)
+        self.session_handler = SessionHandler(get_db())
 
     async def connect(self, websocket: WebSocket, session_id: str, participant_id: int):
         await websocket.accept()

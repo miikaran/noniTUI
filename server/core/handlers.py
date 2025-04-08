@@ -355,17 +355,23 @@ class TaskHandler(HandlerInterface):
             raise InternalServerException(f"Failed to create task for project: {project_id}. ID not returned")
         return task_id
 
-    def update_project_task(self, task_data, task_id):
+    def update_project_task(self, task_data, task_id, session_id):
         """Update task in project"""
-        if not (task_data and task_id):
-            raise BadRequestException("Task data or task id not found ")    
-        project_id = task_data["project_id"]
+        if not (task_data and task_id and session_id):
+            raise BadRequestException("Task data or task id or session ID not found ") 
+        session_handler = SessionHandler(self.db)
+        session_data = session_handler.get_session(session_id)
+        session_project_id = int(session_data[0]["project_id"])
+        if "project_id" in task_data:
+            provided_project_id = int(task_data["project_id"])
+            if session_project_id is not provided_project_id:
+                raise BadRequestException("Session's project ID not matching the project id in provided task data")
         success = self.update_record(
             id=task_id,
             updated_data={
                 "columns": {
                     **task_data,
-                    "project_id": int(project_id),
+                    "project_id": session_project_id,
                 } 
             },
             clauses=[{
