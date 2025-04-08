@@ -1,88 +1,111 @@
-# Ohjeet nyypälle
+# ohjeet nyypälle
+---
 
-## Database stuff
-1. Make sure PostgreSQL is installed
-2. Run the setup.sh in environment/ to setup the sql stuff. I think it requires sudo.
-3. If it didn't output any errors, check that all of the tables are in PostgreSQL
-4. Change credentials from environment/.env.development if required
+## DB stuff
+
+1. Ensure PostgreSQL is installed and running.
+2. Navigate to the `environment/` directory and run the setup script:
+
+   ```bash
+   sudo ./setup.sh
+   ```
+
+3. If the script completes without errors, verify that all required tables have been created in your PostgreSQL database.
+4. If needed, update database credentials in `environment/.env.development`.
+
+---
 
 ## Python stuff
-1. Install pip packages from requirements.txt
-2. Run **fastapi dev main.py** to start the server. If no errors -> guud.
 
-## API stuff
+1. Install Python dependencies:
 
-Next, we will test
-- creating project
-- joining it
-- adding tasks to it
-- updating tasks in it
-- deleting tasks in it
-- (message routet viel puuttuu)
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-with curl
+2. Start the FastAPI dev server:
 
-#### 1. Creating project
+   ```bash
+   fastapi dev main.py
+   ```
 
-New project schema in /api/projects
+3. If no errors occur, guud.
 
-This will initialize new project in db, and create a session for it.
-It returns the session_id, that will be used to join the project session
+---
 
+## API examples w curl
+
+- Creating a project
+- Joining a session
+- Adding tasks
+- Updating tasks
+- Deleting tasks
+- (Message routes need to badded)
+
+---
+
+### 1. Creating project
+
+New project schema is defined in `/api/projects`.
+
+This will initialize a new project in the database and return a `session_id`, which is used for joining it.
+
+```bash
 curl -X POST -H "Content-Type: application/json" -d '{"project_name": "miikanprojekti", "description": "joku taski desci"}' http://localhost:8000/projects/
+```
 
-#### 2. Join project
+---
 
-Join the project by adding the returned session_id to the join route, and also a username query param, the user wants to identify with in the session.
+### 2. Join project
 
-This will add user as session participant to the project session.
-It returns a session_participant_id.
+Join the project with the `session_id` received, and providing a `username` as a query param
 
+Returns a `session_participant_id`.
+
+```bash
 curl -X POST  http://localhost:8000/projects/join/30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8?username=Miika
+```
 
-#### 3. Add tasks to project
+---
 
-New task schema in /api/tasks
+### 3. Add tasks to project
 
-Give the session id as cookie (curl does not store cookies anywhere, so thats why we have to give it manually here, en tiiä mite toi menee textualizes). 
+New task schema is defined in `/api/tasks`.
 
-This adds a new task to the project that is identified with the session_id.
-Returns task_id
+Make sure youu provide the `session_id` as a cookie. (curl does not store cookies automatically, so you must include it manually. En tiiä miten tä toimii textualizes, et käsitteleeks se cookiet miten)
 
+Returns a `task_id`.
+
+```bash
 curl -X POST --cookie "session_id=30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8" -H "Content-Type: application/json" -d '{"name": "uusi taski", "assignee": "miika", "description": "ju", "start_date": "2025-04-09", "end_date": "2025-04-28", "task_type": "todo"}' http://localhost:8000/tasks/new
+```
 
-#### 4. Update tasks in project
+---
 
-Add the task id you want to modify to the URL
-Give the session id as cookie again, and the updated task data as body.
+### 4. Update tasks in project
 
-This will replace the whole task with the updated data.
-Returns task_id that was modified
+Use target `task_id` to update in the URL, the updated data in the body, and the `session_id` as a cookie.
 
+Replaces the task with the new data and returns the `task_id` that was updated.
+
+```bash
 curl -X PUT --cookie "session_id=30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8" -H "Content-Type: application/json" -d '{"name": "miikan taski paivitys", "assignee": "miika", "description": "ju", "start_date": "2025-04-08", "end_date": "2025-04-28", "task_type": "todo"}' http://localhost:8000/tasks/12
+```
 
-#### 5. Delete tasks in project
+---
 
-To delete task, add the task id to the URL and include session_id.
-This will delete the task from the project.
-Returns the task_id that was removed
+### 5. Delete tasks in project
 
+Add the target `task_id` again in the URL and provide the `session_id` as a cookie.
+
+Returns the deleted `task_id`.
+
+```bash
 curl -X DELETE --cookie "session_id=30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8" http://localhost:8000/tasks/12
+```
 
+---
 
-### Websocket / Notifier stuff
+## Websocket / notifier stuff
 
-tähän pitää lisää viel noi reaaliaikais hommat, et miten ne toimii
-
-
-
-
-
-
-
-
-
-
-
-
-
+lisään tän myöhemmi
