@@ -362,7 +362,7 @@ class TaskHandler(HandlerInterface):
         session_handler = SessionHandler(self.db)
         session_data = session_handler.get_session(session_id)
         session_project_id = int(session_data[0]["project_id"])
-        if "project_id" in task_data:
+        if task_data["project_id"] is not None:
             provided_project_id = int(task_data["project_id"])
             if session_project_id is not provided_project_id:
                 raise BadRequestException("Session's project ID not matching the project id in provided task data")
