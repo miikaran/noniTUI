@@ -37,6 +37,7 @@
 
 - Creating a project
 - Joining a session
+- Getting tasks
 - Adding tasks
 - Updating tasks
 - Deleting tasks
@@ -68,7 +69,15 @@ curl -X POST  http://localhost:8000/projects/join/30ca08c4-bb0a-419e-a7e5-3c85cd
 
 ---
 
-### 3. Add tasks to project
+### 3. Get project tasks
+
+Get tasks within a project, with the project's `session id`
+
+```bash
+curl --cookie "session_id=30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8" http://localhost:8000/tasks/
+```
+
+### 4. Add tasks to project
 
 New task schema is defined in `/api/tasks`.
 
@@ -82,7 +91,7 @@ curl -X POST --cookie "session_id=30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8" -H "Cont
 
 ---
 
-### 4. Update tasks in project
+### 5. Update tasks in project
 
 Use target `task_id` to update in the URL, the updated data in the body, and the `session_id` as a cookie.
 
@@ -94,7 +103,7 @@ curl -X PUT --cookie "session_id=30ca08c4-bb0a-419e-a7e5-3c85cd9e67c8" -H "Conte
 
 ---
 
-### 5. Delete tasks in project
+### 6. Delete tasks in project
 
 Add the target `task_id` again in the URL and provide the `session_id` as a cookie.
 

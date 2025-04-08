@@ -318,6 +318,16 @@ class TaskHandler(HandlerInterface):
     def __init__(self, db):
         super().__init__(db=db,target_model=TasksModel)
 
+    def get_project_tasks_with_session_id(self, session_id):
+        if not session_id:
+            raise BadRequestException("session ID not provided")
+        session_handler = SessionHandler(self.db)
+        session_data = session_handler.get_session(session_id)
+        project_id = session_data[0]["project_id"]
+        if not project_id:
+            raise NotFoundException(f"Project not found for session id: {session_id}")
+        return self.get_project_tasks(project_id)
+
     def get_project_tasks(self, project_id):
         """Get tasks for project"""
         if not project_id:

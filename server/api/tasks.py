@@ -58,20 +58,18 @@ async def get_all_tasks(
     return results
 
 @centralized_error_handling
-@router.get("/{project_id}", summary="Fetch tasks for a specific project", response_description="List of tasks for the given project")
+@router.get("/", summary="Fetch tasks for a specific project", response_description="List of tasks for the given project")
 async def get_tasks_by_project(
-    project_id: int = Path(..., description="The project ID for which to fetch tasks"),
     handler: TaskHandler = Depends(get_task_handler),
     valid_session: bool = Depends(check_request_session)
 ):
     """
-    Retrieve tasks associated with a specific project by its project ID.
+    Retrieve tasks associated with a specific project by its session id.
     
-    - **project_id**: Path parameter indicating the project to fetch tasks for.
-    - **Returns**: A list of tasks associated with the specified project ID.
+    - **Returns**: A list of tasks associated with the session/project.
     - **Requires**: A valid session token.
     """
-    project_tasks = handler.get_project_tasks(project_id)
+    project_tasks = handler.get_project_tasks_with_session_id(valid_session)
     return project_tasks
 
 @centralized_error_handling
