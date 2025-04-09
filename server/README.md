@@ -72,6 +72,7 @@ curl -X POST  http://localhost:8000/projects/join/30ca08c4-bb0a-419e-a7e5-3c85cd
 ### 3. Get project tasks
 
 Get tasks within a project, with the project's `session id`
+
 Returns list of tasks in the target project
 
 ```bash
