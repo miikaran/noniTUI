@@ -48,7 +48,7 @@
 
 New project schema is defined in `/api/projects`.
 
-This will initialize a new project in the database and return a `session_id`, which is used for joining it.
+This will initialize a new project and a session for it in the database, and return a `session_id`, which is used for joining it.
 
 ```bash
 curl -X POST -H "Content-Type: application/json" -d '{"project_name": "miikanprojekti", "description": "joku taski desci"}' http://localhost:8000/projects/
