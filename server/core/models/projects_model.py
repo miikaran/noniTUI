@@ -1,4 +1,4 @@
-from core.sql_interface import SQLInterface
+from server.core.sql_interface import SQLInterface
 from datetime import datetime
 
 class ProjectsModel(SQLInterface):
@@ -10,7 +10,8 @@ class ProjectsModel(SQLInterface):
         ])
         self.set_columns([
             ("project_name", str),
-            ("description", str),
+            # No need, for now.
+            # ("description", str),
             ("created_at", datetime),
             ("modified_at", datetime)
         ])
