@@ -7,9 +7,8 @@ from version import __version__
 from widgets.message import Message
 
 class ManagementScreen(Screen):
-    def __init__(self, project_uuid: str, new=True):
+    def __init__(self):
         super().__init__()
-        self.project_uuid = project_uuid
         self._running = False
 
     CSS_PATH = [
@@ -30,9 +29,9 @@ class ManagementScreen(Screen):
                 with TabbedContent(initial="backlog-tabpane"):
                     with TabPane("Backlog", id="backlog-tabpane"):
                         yield VerticalScroll(
-                                Static("Implement chat | HIGH", classes="task"),
-                                Static("Implement chat | HIGH", classes="task"),
-                                Static("Implement chat | HIGH", classes="task"),
+                            Static("Implement chat | HIGH", classes="task"),
+                            Static("Implement chat | HIGH", classes="task"),
+                            Static("Implement chat | HIGH", classes="task"),
                         )
                     with TabPane("Todo", id="todo-tabpane"):
                         yield Static("Todo")
