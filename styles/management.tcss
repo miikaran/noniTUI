@@ -1,0 +1,59 @@
+#app-grid {
+    layout: grid;
+    grid-size: 2;
+    grid-columns: 0.4fr 0.6fr;
+    grid-rows: 1fr;
+}
+
+#chat-left-pane > Static {
+    background: $boost;
+    color: auto;
+    margin-bottom: 1;
+    padding: 1;
+}
+
+#chat-left-pane {
+    height: 100%;
+    row-span: 2;
+    border: #7dcfff;
+}
+
+#tasks-top-right {
+    height: 100%;
+    width: 100%;
+    layout: vertical;
+    padding: 1;
+    border: #7dcfff;
+}
+
+TabbedContent {
+    layout: vertical;
+    padding: 0;
+}
+
+TabPane {
+    padding: 1;
+    background: $boost;
+    color: #7dcfff;
+}
+
+TabbedContent > TabPane {
+    border-bottom: thick solid #7dcfff;
+}
+
+TabPane > Label {
+    padding: 1;
+    color: #7dcfff;
+}
+
+#noni-text {
+    color: #ffc777;
+}
+
+#information-bar {
+    dock: top;
+    height: 10%;
+    padding: 2 2;
+    layout: horizontal;
+    align: center middle;
+}
