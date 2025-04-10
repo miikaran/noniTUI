@@ -12,14 +12,16 @@ echo "Starting to set up NoniDB environment..."
 
 sudo -i -u postgres bash <<EOF
 
-echo "Creating user: $POSTGRES_USER"
-psql -c "CREATE USER \"$POSTGRES_USER\" WITH PASSWORD '$POSTGRES_PASSWORD';"
+echo "Checking if user $POSTGRES_USER exists..."
+psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$POSTGRES_USER'" | grep -q 1 || psql -c "CREATE USER \"$POSTGRES_USER\" WITH PASSWORD '$POSTGRES_PASSWORD';"
 
-echo "Creating database: $POSTGRES_DB"
-psql -c "CREATE DATABASE \"$POSTGRES_DB\";"
+echo "Checking if database $POSTGRES_DB exists..."
+psql -tAc "SELECT 1 FROM pg_database WHERE datname='$POSTGRES_DB'" | grep -q 1 || psql -c "CREATE DATABASE \"$POSTGRES_DB\";"
 
 echo "Granting privileges to user: $POSTGRES_USER on database: $POSTGRES_DB"
 psql -c "GRANT ALL PRIVILEGES ON DATABASE \"$POSTGRES_DB\" TO \"$POSTGRES_USER\";"
+psql -d "$POSTGRES_DB" -c "GRANT ALL ON SCHEMA public TO \"$POSTGRES_USER\";"
+psql -d "$POSTGRES_DB" -c "ALTER SCHEMA public OWNER TO \"$POSTGRES_USER\";"
 
 EOF
 
