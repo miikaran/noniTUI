@@ -40,11 +40,3 @@ class ManagementScreen(Screen):
                         yield Static("In-Progress")
                     with TabPane("Done", id="done-tabpane"):
                         yield Static("Done")
-            with Container(id="stats-bottom-right"):
-               with Container(id="stat-days"):
-                    yield Horizontal(
-                        Static("1 Done"),
-                        Static("3 Updated"),
-                        Static("7 Created"),
-                        Static("0 Due"),
-                    )

@@ -23,6 +23,7 @@
     width: 100%;
     layout: vertical;
     padding: 1;
+    border: #7dcfff;
 }
 
 TabbedContent {
@@ -43,26 +44,6 @@ TabbedContent > TabPane {
 TabPane > Label {
     padding: 1;
     color: #7dcfff;
-}
-
-#stats-bottom-right {
-    height: 100%;
-    layout: grid;
-    grid-size: 3;
-    grid-columns: 1fr;
-    grid-rows: 1fr;
-    grid-gutter: 1;
-    border: #7dcfff;
-}
-
-#stats-bottom-right-final {
-    column-span: 2;
-}
-
-#stats-bottom-right > Static {
-    height: 100%;
-    width: 100%;
-    background: $boost;
 }
 
 #noni-text {
