@@ -16,7 +16,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 class ProjectModel(BaseModel):
     """Request schema for creating a new project"""
     project_name: str = Field(..., max_length=50, description="The name of the project. Must be under 50 characters.")
-    description: str = Field(..., max_length=300, description="A detailed description of the project. Max 300 characters.")
+    description: Optional[str] = Field(None, max_length=300, description="A detailed description of the project. Max 300 characters.")
     created_at: Annotated[datetime, Body()] = Field(None, description="Optional creation timestamp. Defaults to now if not set.")
     modified_at: Annotated[datetime, Body()] = Field(None, description="Optional last modification timestamp.")
 
