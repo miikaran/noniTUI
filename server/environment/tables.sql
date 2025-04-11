@@ -4,7 +4,8 @@
 CREATE TABLE projects (
     project_id SERIAL PRIMARY KEY,
     project_name VARCHAR(255) NOT NULL,
-    description TEXT,
+    -- No need, for now.
+    -- description TEXT,
     created_at DATE NOT NULL,
     modified_at TIMESTAMP NOT NULL
 );
