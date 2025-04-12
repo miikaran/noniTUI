@@ -7,8 +7,9 @@ from version import __version__
 from widgets.message import Message
 
 class ManagementScreen(Screen):
-    def __init__(self):
+    def __init__(self, project_uuid):
         super().__init__()
+        self.project_uuid = project_uuid
         self._running = False
 
     CSS_PATH = [

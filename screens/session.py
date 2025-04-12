@@ -133,10 +133,10 @@ class SessionScreen(Screen):
                 match self.project_type:
                     case ProjectType.JOIN:
                         await self.join_project(self.join_project_uuid, self.session_username)
-                        # await self.app.push_screen(ManagementScreen(project_uuid=self.join_project_uuid))
+                        await self.app.push_screen(ManagementScreen(project_uuid=self.join_project_uuid))
                     case ProjectType.CREATE:
                         await self.join_project(self.new_project_uuid, self.session_username)
-                        # await self.app.push_screen(ManagementScreen(project_uuid=self.new_project_uuid))
+                        await self.app.push_screen(ManagementScreen(project_uuid=self.new_project_uuid))
             elif self.join_project_input.has_focus:
                 self.project_type = ProjectType.JOIN
                 self.join_project_uuid = self.join_project_input.value.strip()
