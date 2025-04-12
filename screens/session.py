@@ -3,6 +3,8 @@ Instead of splitting project related things into a different screen,
 we are for the sake of simplicity, only updating the widget when username
 has been submitted.
 """
+from enum import Enum
+
 import aiohttp
 from textual.app import ComposeResult
 from textual.screen import Screen
@@ -10,6 +12,8 @@ from textual.widgets import Static, MaskedInput, Label, Input
 from textual.containers import Vertical
 from textual.events import Key
 from textual.reactive import Reactive
+
+from screens.management import ManagementScreen
 
 ASCII_TITLE = """
 _   _             _ _____ _   _ ___ 
@@ -19,11 +23,20 @@ _   _             _ _____ _   _ ___
 |_| \_|\___/|_| |_|_| |_|  \___/|___|
 """
 
+class ProjectType(Enum):
+    """Enum for project types."""
+    JOIN = 1
+    CREATE = 2
+    NONE = 3
+
+
 class SessionScreen(Screen):
     """Screen for joining and creating sessions."""
     session_username: Reactive[str] = Reactive("")
     new_project_name: Reactive[str] = Reactive("")
     new_project_uuid: Reactive[str] = Reactive("")
+    join_project_uuid: Reactive[str] = Reactive("")
+    project_type: Reactive[ProjectType] = Reactive(ProjectType.NONE)
 
     def __init__(self):
         super().__init__()
@@ -40,11 +53,31 @@ class SessionScreen(Screen):
                 async with session.post("http://localhost:8000/projects/", json=content) as response:
                     if response.status == 201:
                         session_id = await response.text()
-                        self.notify(f"Project created successfully! Session ID: {session_id}")
-                        return session_id
+                        return session_id.strip('"')
                     else:
                         error_message = await response.text()
                         self.notify(f"Failed to create project: {error_message}")
+                        return None
+        except aiohttp.ClientConnectorError as e:
+            self.notify(f"Connection Error: {e}")
+        except Exception as e:
+            self.notify(f"An unexpected error occurred: {str(e)}")
+
+    # doing handlers later
+    async def join_project(self, project_uuid, username):
+        """Joins a project"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                        f"http://localhost:8000/projects/join/{project_uuid}?username={username}"
+                ) as response:
+                    if response.status == 200:
+                        session_id = await response.text()
+                        self.notify(f"Successfully joined the project!")
+                        return session_id
+                    else:
+                        error_message = await response.text()
+                        self.notify(f"Failed to join project: {error_message}")
                         return None
         except aiohttp.ClientConnectorError as e:
             self.notify(f"Connection Error {e.__str__()}")
@@ -97,11 +130,22 @@ class SessionScreen(Screen):
         if event.key == "enter":
             if self.username_input.has_focus:
                 self.session_username = self.username_input.value.strip()
+                match self.project_type:
+                    case ProjectType.JOIN:
+                        await self.join_project(self.join_project_uuid, self.session_username)
+                        # await self.app.push_screen(ManagementScreen(project_uuid=self.join_project_uuid))
+                    case ProjectType.CREATE:
+                        await self.join_project(self.new_project_uuid, self.session_username)
+                        # await self.app.push_screen(ManagementScreen(project_uuid=self.new_project_uuid))
             elif self.join_project_input.has_focus:
-                pass
+                self.project_type = ProjectType.JOIN
+                self.join_project_uuid = self.join_project_input.value.strip()
+                self.widget_swap_from_project_to_username()
             elif self.create_project_input.has_focus:
+                self.project_type = ProjectType.CREATE
                 self.new_project_name = self.create_project_input.value.strip()
                 self.new_project_uuid = await self.create_project(self.new_project_name)
+                self.widget_swap_from_project_to_username()
 
     def widget_swap_from_project_to_username(self) -> None:
         """Swaps widgets, from project related to username related."""
