@@ -2,13 +2,14 @@ from fastapi import WebSocket
 from typing import Dict
 from core.notification_listener import NotificationListener
 from core.utils.database import get_db
-from core.handlers import SessionHandler
+from core.handlers import SessionHandler, SessionParticipantHandler
 
 class WebsocketManager:
     def __init__(self):
         # Stored in format -> {<session_id>: {<participant_id>: WebSocket}}
         self.active_connections : Dict[str, Dict[str, WebSocket]] = {}
         self.session_handler = SessionHandler(get_db())
+        self.session_participant_handler = SessionParticipantHandler(get_db())
 
     async def connect(self, websocket: WebSocket, session_id: str, participant_id: int):
         await websocket.accept()
@@ -44,6 +45,15 @@ class WebsocketManager:
                 print(f"#{participant_id_to_remove} disconnected from session {session_id}")
             if not session_participants:
                 del self.active_connections[session_id]
+                # Have to create seperate handler for this in handlers
+                self.session_participant_handler.delete_record(
+                    id=participant_id_to_remove,
+                    clauses=[{
+                        "col": "participant_id", 
+                        "clause": "session_participant_equals", 
+                        "value": int(participant_id_to_remove)
+                        }]
+                )
 
     async def broadcast_to_session(self, message, session_id):
         if session_id not in self.active_connections:
