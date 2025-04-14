@@ -2,6 +2,7 @@ from core.sql_interface import SQLInterface
 import asyncio
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import json
+from core.utils.database import get_db
 
 class NotificationListener(SQLInterface):
     def __init__(self, db_conn, websocket_manager):
@@ -18,41 +19,44 @@ class NotificationListener(SQLInterface):
         """
         self.whitelisted_channels_prefixes = [
             "messages_channel_",
-            "projects_channel_"
-            "sessions_channel_"
+            "projects_channel_",
+            "sessions_channel_",
             "tasks_channel_",
             "session_participants_channel_"
         ]
 
-    def handle_notification(self, notification):
-        """This is replaced with the actual handler when initializing the listener"""
-        print(notification)
-
-    def listen(self, channel):
-        self.cursor.execute(f"LISTEN {channel};")
+    def listen(self, channel, loop):
+        conn = get_db()
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = conn.cursor()
+        cursor.execute(f"LISTEN {channel};")
         print(f"Listening for messages on PostgreSQL channel '{channel}'...")
         while True:
-            self.conn.poll()
-            while self.conn.notifies:
-                notify = self.conn.notifies.pop(0)
+            conn.poll()
+            while conn.notifies:
+                notify = conn.notifies.pop(0)
                 print(f"Received PostgreSQL notification: {notify.payload}")
-                self.handle_notification(notify.payload)
+                # Need to run this in threadsafe coroutine, because psycopg2 does not support real async i guess
+                asyncio.run_coroutine_threadsafe(
+                    self.handle_notification(notify.payload),
+                    loop
+                )
                 
-    def start_up(self, project_id, session_id=None):
+    async def start_up(self, project_id, session_id=None):
+        loop = asyncio.get_running_loop()
         for channel_prefix in self.whitelisted_channels_prefixes:
             final_channel_name = f"{channel_prefix}{project_id}"
-            loop = asyncio.get_event_loop()
-            task = loop.create_task(asyncio.to_thread(self.listen, channel=final_channel_name))
+            task = loop.create_task(asyncio.to_thread(self.listen, channel=final_channel_name, loop=loop))
             self.active_tasks[final_channel_name] = task
             if session_id:
                 # Store session id here as well to clean unnecessary tasks
                 self.session_id = session_id
-            # Add background task to clean hanging listening tasks
-            loop.create_task(self.cleaner(interval_seconds=30*60))
+        # Add background task to clean hanging listening tasks
+        loop.create_task(self.cleaner(interval_seconds=30*60))
 
     async def handle_notification(self, message: str):
         updated_row_json = json.loads(message)
-        await self.websocket_manager.broadcast_to_session(updated_row_json)
+        await self.websocket_manager.broadcast_to_session(updated_row_json, self.session_id)
 
     def should_cancel_channel(self, session_id):
         session_participants = self.websocket_manager.active_connections[session_id]

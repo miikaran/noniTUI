@@ -25,7 +25,7 @@ class WebsocketManager:
                 db_conn=get_db(),
                 websocket_manager=self,
             )
-            notification_listener.start_up(project_id, session_id=session_id)
+            await notification_listener.start_up(project_id, session_id=session_id)
         self.active_connections[session_id][str(participant_id)] = websocket
         print(f"#{participant_id} joined session {session_id} room")
         print(f"Current users in that room: {list(self.active_connections[session_id].keys())}")
@@ -56,7 +56,7 @@ class WebsocketManager:
             print(f"Removing empty session room: {session_id}")
             del self.active_connections[session_id]
         for client, websocket in session_websockets.items():
-            websocket.send_text(message)
+            await websocket.send_json(message)
         print(f"Sent {message} to all {len(session_websockets)} members of session {session_id}")
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
