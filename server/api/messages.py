@@ -3,9 +3,9 @@ from core.utils.database import get_db
 from pydantic import BaseModel, Field
 from typing import Annotated, Dict, Optional, Any
 from datetime import datetime
-from core.handlers import MessageHandler
+from core.handlers import MessageHandler, SessionHandler
 from core.utils.exceptions import InternalServerException, BadRequestException, centralized_error_handling
-import json
+from fastapi.encoders import jsonable_encoder
 
 ##################################################
 # API routes for message related functionalities #
@@ -23,27 +23,26 @@ class MessageModel(BaseModel):
 def get_message_handler(db=Depends(get_db)):
     return MessageHandler(db)
 
+async def check_request_session(request: Request, db=Depends(get_db)):
+    session_handler = SessionHandler(db)
+    return await session_handler.check_request_session(request)
+
 @centralized_error_handling
 @router.get("/")
-async def filter_messages(
-    filters: str = Query(..., description="Filters messages as JSON String"),
-    handler: MessageHandler = Depends(get_message_handler)
-    ):
-    filters_dict = json.loads(filters)
-    if not filters_dict:
-        raise BadRequestException("No filters found in request parameters")
-    results = handler.filter_from(
-        filters=filters_dict.get("filters", {}),
-        format=filters_dict.get("format", {})
-    )
-    return {"results": results}
+async def get_messages_by_project(
+    handler: MessageHandler = Depends(get_message_handler),
+    valid_session: bool = Depends(check_request_session)
+):
+    messages = handler.get_project_messages(valid_session)
+    return messages
 
 @centralized_error_handling
 @router.post("/")
-async def create_message(
-    message_data: MessageModel, 
-    handler: MessageHandler = Depends(get_message_handler)
-    ):
-    session_id = handler.create_message(message_data)
-    if session_id:
-        return {"session_id": session_id,}
+async def send_message_to_project(
+    message_data: MessageModel,
+    handler: MessageHandler = Depends(get_message_handler),
+    valid_session: bool = Depends(check_request_session)
+):
+    data = jsonable_encoder(message_data)
+    message_id = handler.send_project_message(data, valid_session)
+    return message_id

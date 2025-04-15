@@ -13,17 +13,22 @@
 }
 
 #chat-left-pane {
+    background: rgba(12, 20, 28, 0.26);
     height: 100%;
-    row-span: 2;
-    border: #7dcfff;
+}
+
+#chat-input{
+    width: 100%;
 }
 
 #tasks-top-right {
     height: 100%;
     width: 100%;
     layout: vertical;
-    padding: 1;
-    border: #7dcfff;
+}
+
+.focused-pane {
+    border-top: thick rgb(78, 102, 207);
 }
 
 TabbedContent {
@@ -32,7 +37,6 @@ TabbedContent {
 }
 
 TabPane {
-    padding: 1;
     background: $boost;
     color: #7dcfff;
 }
@@ -52,11 +56,23 @@ TabPane > Label {
 
 #information-bar {
     dock: top;
-    height: 10%;
-    padding: 2 2;
+    height: 8%;
+    padding: 1 1;
     layout: horizontal;
     align: center middle;
 }
 
+#footer {
+    margin-top: 1;
+    dock: bottom;
+    height: 3;
+    background:rgba(6, 22, 36, 0.65);
+    color: $text;
+    padding: 1 2;
+}
 
+#shortcut-hints {
+    text-align: center;
+    width: 100%;
+}
 
