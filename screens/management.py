@@ -26,12 +26,6 @@ class TaskEditModalScreen(Screen):
         self.parent_screen = parent_screen
         self._visible = reactive(False)
 
-    CSS_PATH = [
-        "../styles/management.tcss",
-        "../styles/message.tcss",
-        "../styles/task.tcss"
-    ]
-
     def compose(self) -> ComposeResult:
         yield Vertical(
             Label("Edit Task", id="modal-title"),
