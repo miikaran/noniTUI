@@ -14,6 +14,7 @@ from textual.events import Key
 from textual.reactive import Reactive
 
 from screens.management import ManagementScreen
+from utils.session_manager import session_manager
 
 ASCII_TITLE = """
 _   _             _ _____ _   _ ___ 
@@ -28,7 +29,6 @@ class ProjectType(Enum):
     JOIN = 1
     CREATE = 2
     NONE = 3
-
 
 class SessionScreen(Screen):
     """Screen for joining and creating sessions."""
@@ -49,15 +49,15 @@ class SessionScreen(Screen):
         """Creates a new project and generates a session for the creator."""
         content = {"project_name": project_name}
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post("http://localhost:8000/projects/", json=content) as response:
-                    if response.status == 201:
-                        session_id = await response.text()
-                        return session_id.strip('"')
-                    else:
-                        error_message = await response.text()
-                        self.notify(f"Failed to create project: {error_message}")
-                        return None
+            session = await session_manager.get_session()
+            async with session.post("http://localhost:8000/projects/", json=content) as response:
+                if response.status == 201:
+                    session_id = await response.text()
+                    return session_id.strip('"')
+                else:
+                    error_message = await response.text()
+                    self.notify(f"Failed to create project: {error_message}")
+                    return None
         except aiohttp.ClientConnectorError as e:
             self.notify(f"Connection Error: {e}")
         except Exception as e:
@@ -67,18 +67,19 @@ class SessionScreen(Screen):
     async def join_project(self, project_uuid, username):
         """Joins a project"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                        f"http://localhost:8000/projects/join/{project_uuid}?username={username}"
-                ) as response:
-                    if response.status == 200:
-                        session_id = await response.text()
-                        self.notify(f"Successfully joined the project!")
-                        return session_id
-                    else:
-                        error_message = await response.text()
-                        self.notify(f"Failed to join project: {error_message}")
-                        return None
+            session = await session_manager.get_session()
+            async with session.post(
+                    f"http://localhost:8000/projects/join/{project_uuid}?username={username}"
+            ) as response:
+                
+                if response.status == 200:
+                    session_id = await response.text()
+                    self.notify(f"Successfully joined the project!")
+                    return session_id
+                else:
+                    error_message = await response.text()
+                    self.notify(f"Failed to join project: {error_message}")
+                    return None
         except aiohttp.ClientConnectorError as e:
             self.notify(f"Connection Error {e.__str__()}")
         except Exception as e:

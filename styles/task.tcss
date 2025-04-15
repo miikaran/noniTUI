@@ -1,0 +1,115 @@
+/* Define color variables */
+$primary-background:rgba(41, 72, 108, 0.55);
+$text-color: #FFFFFF;
+$highlight-color: #4CAF50;
+$highlight-text-color: #FFFFFF;
+$expanded-background: #333333;
+$hover-background:rgb(27, 49, 83);
+$focus-outline-color: #FF5722;
+$secondary-text-color: #B0B0B0;
+$task-type-color: #FF9800;
+$date-text-color: #9E9E9E;
+$scrollbar-thumb-color: #888888;
+$scrollbar-track-color: #444444;
+$backlog-border-color: #2196F3;
+$todo-border-color: #FFEB3B;
+$in-progress-border-color: #FF9800;
+$done-border-color: #4CAF50;
+$modal-background: #282828;
+$modal-border-color: #555555;
+$modal-text-color: #FFFFFF;
+$close-button-bg: #FF5722;
+$close-button-color: #FFFFFF;
+$close-button-hover-bg: #D32F2F;
+$tab-background: #303030;
+$tab-title-color: #FFFFFF;
+$tab-title-hover-color: #FF5722;
+
+.task-widget {
+    padding: 1;
+    background: $primary-background;
+    color: $text-color;
+    margin-bottom: 1;
+}
+
+.task-widget.selected {
+    background: $done-border-color;
+    color: $highlight-text-color;
+}
+
+.task-widget.expanded {
+    background: $expanded-background;
+}
+
+.task-widget:hover {
+    background: $hover-background;
+}
+
+.task-widget .task-description {
+    color: $secondary-text-color;
+    margin-top: 1;
+}
+
+.task-widget .task-type {
+    color: $task-type-color;
+}
+
+.task-widget .task-type-icon {
+    margin-right: 1;
+}
+
+.task-widget .task-dates {
+    color: $date-text-color;
+}
+
+.task-list > .task-widget {
+    margin-bottom: 1;
+}
+
+#task-details-container {
+    background: $modal-background;
+    width: 60%;
+    max-height: 80%;
+    overflow: auto;
+}
+
+#task-details-container .task-info {
+    color: $modal-text-color;
+    margin-bottom: 2;
+}
+
+#task-details-container .close-button {
+    background: $close-button-bg;
+    color: $close-button-color;
+    border: none;
+    margin-top: 1;
+}
+
+#task-details-container .close-button:hover {
+    background: $close-button-hover-bg;
+}
+
+#backlog-tabpane .tab-title,
+#todo-tabpane .tab-title,
+#in-progress-tabpane .tab-title,
+#done-tabpane .tab-title {
+    color: $tab-title-color;
+}
+
+#backlog-tabpane .tab-title:hover,
+#todo-tabpane .tab-title:hover,
+#in-progress-tabpane .tab-title:hover,
+#done-tabpane .tab-title:hover {
+    color: $tab-title-hover-color;
+}
+
+.modal-visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal-hidden {
+    visibility: hidden;
+    opacity: 0;
+}
+
