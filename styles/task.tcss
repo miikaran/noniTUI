@@ -12,3 +12,12 @@ ListItem {
     padding: 1;
 }
 
+.selected-task {
+    border-left: thick rgb(168, 184, 255);
+    background: rgb(104, 55, 160);
+}
+
+.move-mode {
+    background: rgb(53, 27, 83);
+}
+

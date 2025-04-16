@@ -28,7 +28,7 @@
 }
 
 .focused-pane {
-    border-top: thick rgb(78, 102, 207);
+    border-top: thick rgb(74, 141, 209);
 }
 
 TabbedContent {
@@ -37,7 +37,6 @@ TabbedContent {
 }
 
 TabPane {
-    background: $boost;
     color: #7dcfff;
 }
 
