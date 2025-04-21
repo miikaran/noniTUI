@@ -73,9 +73,8 @@ class SessionScreen(Screen):
             ) as response:
                 
                 if response.status == 200:
-                    session_id = await response.text()
+                    self.session_participant_id = await response.text()
                     self.notify(f"Successfully joined the project!")
-                    return session_id
                 else:
                     error_message = await response.text()
                     self.notify(f"Failed to join project: {error_message}")
@@ -134,10 +133,16 @@ class SessionScreen(Screen):
                 match self.project_type:
                     case ProjectType.JOIN:
                         await self.join_project(self.join_project_uuid, self.session_username)
-                        await self.app.push_screen(ManagementScreen(project_uuid=self.join_project_uuid))
+                        await self.app.push_screen(ManagementScreen(
+                            project_uuid=self.join_project_uuid, 
+                            session_username=self.session_username,
+                            session_participant_id=self.session_participant_id))
                     case ProjectType.CREATE:
                         await self.join_project(self.new_project_uuid, self.session_username)
-                        await self.app.push_screen(ManagementScreen(project_uuid=self.new_project_uuid))
+                        await self.app.push_screen(ManagementScreen(
+                            project_uuid=self.new_project_uuid, 
+                            session_username=self.session_username,
+                            session_participant_id=self.session_participant_id))
             elif self.join_project_input.has_focus:
                 self.project_type = ProjectType.JOIN
                 self.join_project_uuid = self.join_project_input.value.strip()

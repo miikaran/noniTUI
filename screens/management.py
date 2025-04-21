@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 from datetime import datetime
 from textual.app import ComposeResult
 from textual.screen import Screen, ModalScreen
@@ -9,7 +10,7 @@ from textual import events
 from version import __version__
 from widgets.message import Message
 from utils.session_manager import session_manager
-
+from utils.websocket_listener import WebSocketListener
 
 class TaskEditModalScreen(ModalScreen):
     def __init__(self, task_data: dict, parent_screen):
@@ -17,10 +18,11 @@ class TaskEditModalScreen(ModalScreen):
         self.task_data = task_data
         self.parent_screen = parent_screen
         self._visible = reactive(False)
+        self.is_new = self.task_data.get("id") is None
 
     def compose(self) -> ComposeResult:
         yield Vertical(
-            Label(f"Edit Task {self.task_data.get('id')}", id="modal-title"),
+            Label("Create Task" if self.is_new else f"Edit Task {self.task_data.get('id')}", id="modal-title"),
             Input(value=self.task_data.get("name", ""), id="input-name", placeholder="Name"),
             Input(value=self.task_data.get("assignee", ""), id="input-assignee", placeholder="Assignee"),
             Input(value=self.task_data.get("description", ""), id="input-description", placeholder="Description"),
@@ -47,15 +49,23 @@ class TaskEditModalScreen(ModalScreen):
     async def submit_form(self):
         try:
             session = await session_manager.get_session()
-            task_id = self.task_data["id"]
-            url = f"http://localhost:8000/tasks/{task_id}"
-            async with session.put(url, json=self.task_data) as response:
-                if response.status == 200:
-                    self.app.notify("Task updated successfully.")
-                else:
-                    self.app.notify(f"Failed to update task: {response.status}")
+            if self.is_new:
+                url = f"http://localhost:8000/tasks/new"
+                async with session.post(url, json=self.task_data) as response:
+                    if response.status == 200:
+                        self.app.notify("Task created successfully.")
+                    else:
+                        self.app.notify(f"Failed to create task: {response.status}")
+            else:
+                task_id = self.task_data["id"]
+                url = f"http://localhost:8000/tasks/{task_id}"
+                async with session.put(url, json=self.task_data) as response:
+                    if response.status == 200:
+                        self.app.notify("Task updated successfully.")
+                    else:
+                        self.app.notify(f"Failed to update task: {response.status}")
         except Exception as e:
-            self.app.notify(f"Error during update: {str(e)}")
+            self.app.notify(f"Error during task save: {str(e)}")
 
     async def cancel(self):
         self.app.pop_screen()
@@ -125,6 +135,10 @@ class TaskWidget(ListItem):
             return date_obj.strftime("%b %d, %Y %H:%M")
         except ValueError:
             return date_string
+        
+    def update_task(self, new_data):
+        self.task_data.update(new_data)
+        self.query_one("#task-static", Static).update(self.render_text())
 
 
 class TaskList(ListView):
@@ -147,6 +161,9 @@ class TaskList(ListView):
         elif event.key == "e":
             if self.selected_item:
                 await self.parent_screen.show_task_edit_modal(self.selected_item.task_data)
+            event.stop()
+        elif event.key == "n":
+            await self.parent_screen.show_task_edit_modal({})
             event.stop()
         elif event.key == "enter":
             if self.selected_item:
@@ -192,13 +209,27 @@ class TaskList(ListView):
     def get_widget_at(self, index: int):
         return self.children[index]
 
+    def get_widget_by_id(self, task_id: int):
+        for widget in self.children:
+            if widget.task_data.get("id") == task_id:
+                return widget
+        return None
+
 
 class ManagementScreen(Screen):
     focused_pane = reactive("chat")
 
-    def __init__(self, project_uuid):
+    def __init__(self, project_uuid, session_username, session_participant_id):
         super().__init__()
         self.project_uuid = project_uuid
+        self.session_username = session_username
+        self.session_participant_id = session_participant_id
+        self.websocket_listener = WebSocketListener(
+            self,
+            self.on_websocket_message, 
+            session_id=project_uuid, 
+            session_participant_id=session_participant_id
+            )
         self.task_lists = {}
 
     CSS_PATH = [
@@ -207,10 +238,12 @@ class ManagementScreen(Screen):
         "../styles/task.tcss"
     ]
 
+
     async def on_mount(self):
         try:
             session = await session_manager.get_session()
             await self.fetch_project_tasks(session)
+            asyncio.create_task(self.websocket_listener.start())
         except aiohttp.ClientError as e:
             self.notify(f"Connection Error: {e}")
         except Exception as e:
@@ -285,12 +318,8 @@ class ManagementScreen(Screen):
                 session = await session_manager.get_session()
                 url = f"http://localhost:8000/tasks/{task_id}"
                 data = {
-                    "name": task_widget.task_data.get("name", ""),
-                    "assignee": task_widget.task_data.get("assignee", ""),
-                    "description": task_widget.task_data.get("description", ""),
-                    "task_type": new_type,
-                    "start_date": task_widget.task_data.get("start_date", ""),
-                    "end_date": task_widget.task_data.get("end_date", "")
+                    **task_widget.task_data,
+                    "task_type": new_type
                 }
                 async with session.put(url, json=data) as response:
                     if response.status == 200:
@@ -323,8 +352,90 @@ class ManagementScreen(Screen):
         if self.focused_pane == "chat":
             footer.update("Tab - Switch Pane  |  ⬆/⬇ - Navigate Messages  |  Enter - Send Message")
         else:
-            footer.update("M - Toggle Move Mode  |  ←/→ - Move Task  |  D - Delete Task  |  Tab - Switch Pane  |  ⬆/⬇ - Navigate Tasks")
+            footer.update("N - New Task  |  E - Edit  |  M - Move Mode  |  ←/→ - Move Task  |  D - Delete  |  Tab - Switch  |  ⬆/⬇ - Navigate")
 
+    async def on_websocket_message(self, updated_data):
+        operation = updated_data.get("operation")
+        table = updated_data.get("table")
+        if operation == "INSERT":
+            new_data = updated_data.get("new_data")
+            if table == "tasks":
+                self.handle_task_insert(new_data)
+            elif table == "messages":
+                self.handle_message_insert(new_data)
+            else:
+                self.notify(f"Unsupported table operation: {table}")
+        elif operation == "UPDATE":
+            updated_data_entry = updated_data.get("updated_data")
+            if table == "tasks":
+                self.handle_task_update(updated_data_entry)
+            elif table == "messages":
+                self.handle_message_update(updated_data_entry)
+            else:
+                self.notify(f"Unsupported table operation: {table}")
+        elif operation == "DELETE":
+            old_data = updated_data.get("old_data")
+            if table == "tasks":
+                self.handle_task_delete(old_data)
+            elif table == "messages":
+                self.handle_message_delete(old_data)
+            else:
+                self.notify(f"Unsupported table operation: {table}")
+        else:
+            self.notify(f"Unsupported operation: {operation}")
+
+    def handle_task_insert(self, new_data):
+        task_type = new_data.get("task_type", "backlog")
+        task_list = self.task_lists.get(task_type)
+        if task_list:
+            existing = task_list.get_widget_by_id(new_data["id"])
+            if not existing:
+                task_widget = TaskWidget(new_data, self)
+                task_list.append(task_widget)
+                if len(task_list.children) == 1:
+                    task_list.select_item(task_widget)
+                self.notify(f"Task {new_data['id']} added to '{task_type}'")
+            else:
+                self.notify(f"Task {new_data['id']} already exists")
+
+    def handle_task_update(self, updated_data):
+        task_type = updated_data.get("task_type", "backlog")
+        task_list = self.task_lists.get(task_type)
+        if task_list:
+            widget = task_list.get_widget_by_id(updated_data["id"])
+            if widget:
+                widget.update_task(updated_data)
+                self.notify(f"Task {updated_data['id']} updated in '{task_type}'")
+            else:
+                for lt_name, lt in self.task_lists.items():
+                    existing = lt.get_widget_by_id(updated_data["id"])
+                    if existing:
+                        lt.remove(existing)
+                        break
+                new_widget = TaskWidget(updated_data, self)
+                task_list.append(new_widget)
+                self.notify(f"Task {updated_data['id']} moved to '{task_type}'")
+
+    def handle_task_delete(self, old_data):
+        task_type = old_data.get("task_type", "backlog")
+        task_id = old_data.get("id")
+        task_list = self.task_lists.get(task_type)
+        if task_list:
+            widget = task_list.get_widget_by_id(task_id)
+            if widget:
+                task_list.remove(widget)
+                self.notify(f"Task {task_id} deleted")
+            else:
+                self.notify(f"Task {task_id} not found for deletion")
+    def handle_message_insert(self, new_data):
+        self.notify(f"Message {new_data['id']} inserted successfully")
+
+    def handle_message_update(self, updated_data):
+        self.notify(f"Message {updated_data['id']} updated successfully")
+
+    def handle_message_delete(self, old_data):
+        self.notify(f"Message {old_data['id']} deleted successfully")
+    
     def compose(self) -> ComposeResult:
         with Container(id="app-grid"):
             with Container(id="information-bar"):
@@ -345,4 +456,5 @@ class ManagementScreen(Screen):
                         yield TaskList(self)
         with Container(id="footer"):
             yield Static("", id="shortcut-hints")
+            
         return super().compose()
