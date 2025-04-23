@@ -260,7 +260,7 @@ class SessionParticipantHandler(HandlerInterface):
                 "value": str(session_id)
             }]
         )
-    
+
     def is_participant_in_session(self, session_id, participant_id):
         """Check whether participant is in a session"""
         participant_ids = [
@@ -412,6 +412,43 @@ class TaskHandler(HandlerInterface):
 class MessageHandler(HandlerInterface):
     def __init__(self, db):
          super().__init__(db=db,target_model=MessagesModel)
-    
+
+    def get_project_messages(self, session_id):
+        if not session_id:
+            raise BadRequestException("session ID not provided")
+        session_handler = SessionHandler(self.db)
+        session_data = session_handler.get_session(session_id)
+        project_id = session_data[0]["project_id"]
+        if not project_id:
+            raise NotFoundException(f"Project not found for session id: {session_id}")
+        return self._filter_from(
+            filters=[{
+                "col": "project_id",
+                "clause": "messages_equals",
+                "value": int(project_id)
+            }]
+        )    
+
+    def send_project_message(self, data, session_id):
+        if not (data and session_id):
+            raise BadRequestException("Message data or session id not found ")
+        session_handler = SessionHandler(self.db)
+        session_data = session_handler.get_session(session_id)
+        project_id = session_data[0]["project_id"]
+        if not project_id:
+            raise NotFoundException(f"Project not found for session id: {session_id}")
+        timestamp = datetime.now()
+        success, message_id = self.add_record(
+            data={
+                **data,
+                "project_id": int(project_id), 
+                "message_timestamp": timestamp,
+            },
+            required_cols=["project_id", "name", "assignee", "task_type"],
+            return_col="id"
+            )
+        if not success:
+            raise InternalServerException(f"Failed to send message for project: {project_id}. ID not returned")
+        return message_id
 
     

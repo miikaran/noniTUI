@@ -179,7 +179,8 @@ ALTER SEQUENCE public.messages_id_seq OWNED BY public.messages.id;
 CREATE TABLE public.projects (
     project_id integer NOT NULL,
     project_name character varying(255),
-    description text,
+    -- No need, for now.
+    -- description text,
     created_at date,
     modified_at timestamp without time zone
 );

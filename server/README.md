@@ -1,4 +1,4 @@
-# ohjeet nyypälle
+# Server setup instructions
 ---
 
 ## DB stuff

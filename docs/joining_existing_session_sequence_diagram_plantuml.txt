@@ -1,0 +1,36 @@
+@startuml
+!theme toy
+
+title Joining existing session
+
+actor User
+participant TUI
+participant Server
+
+autonumber
+
+User ->> TUI : Creates session username
+activate TUI
+User ->> TUI : Joins existing project
+
+autonumber stop
+
+group Data fetch before switching to management screen
+alt success - status code 200
+    activate Server
+    alt has_data
+       Server ->> TUI : Return management screen with correct data
+    else no data
+       Server ->> TUI : Uses skeleton
+       note right : Return empty management screen
+    end
+    deactivate Server
+else fetch failure
+    activate Server
+    Server ->> User : Notify user of failure
+    deactivate Server
+end
+end
+deactivate TUI
+
+@enduml

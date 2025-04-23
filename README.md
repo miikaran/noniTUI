@@ -10,6 +10,8 @@ Install dependencies from *requirements.txt* with the following command:
 pip install -r requirements.txt
 ```
 
-### Branching
+<h3 align="center">
+  
+![puspus](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXo0N3Npa2oyZWI4enlib3Bwb25uaGY0MTAxbWg3NmE3Nnk5dHkxNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/In0Lpu4FVivjISX9HT/giphy.gif)
 
-**Do not push to main branch.** Make sure you use the *development* branch as the base of your branches.
+</h3>h3>

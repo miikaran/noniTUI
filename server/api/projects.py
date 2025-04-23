@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query, Response, Path
+from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query, Response, Path, status
 from core.utils.database import get_db
 from core.handlers import ProjectHandler, SessionHandler
 from pydantic import BaseModel, Field
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 class ProjectModel(BaseModel):
     """Request schema for creating a new project"""
     project_name: str = Field(..., max_length=50, description="The name of the project. Must be under 50 characters.")
-    description: str = Field(..., max_length=300, description="A detailed description of the project. Max 300 characters.")
+    description: Optional[str] = Field(None, max_length=300, description="A detailed description of the project. Max 300 characters.")
     created_at: Annotated[datetime, Body()] = Field(None, description="Optional creation timestamp. Defaults to now if not set.")
     modified_at: Annotated[datetime, Body()] = Field(None, description="Optional last modification timestamp.")
 
@@ -66,7 +66,7 @@ async def get_project_by_id(
 ):
     """
     Get detailed information about a single project by its unique ID.
-    
+
     - **project_id**: Integer ID of the project.
     - **Returns**: Matching project record, or raises 404 if not found.
     - **Requires**: A valid session cookie.
@@ -99,7 +99,8 @@ async def filter_projects(
     return handler._filter_from(filters=filters.filters, format=filters.format)
 
 @centralized_error_handling
-@router.post("/", summary="Create a new project", response_description="Session ID for the created project")
+@router.post("/", summary="Create a new project", response_description="Session ID for the created project",
+status_code=status.HTTP_201_CREATED)
 async def create_project(
     response: Response,
     project_data: ProjectModel,
@@ -121,7 +122,7 @@ async def create_project(
             httponly=True,
             max_age=SessionHandler.SESSION_EXPIRATION_SECONDS
         )
-        return session_id,
+        return session_id
     raise InternalServerException("Something went wrong while creating project.")
 
 @centralized_error_handling
