@@ -5,16 +5,16 @@
     grid-rows: 1fr;
 }
 
+
 #chat-left-pane > Static {
     background: $boost;
     color: auto;
-    margin-bottom: 1;
-    padding: 1;
 }
 
 #chat-left-pane {
     background: rgba(12, 20, 28, 0.26);
     height: 100%;
+    padding: 0;
 }
 
 #chat-input{

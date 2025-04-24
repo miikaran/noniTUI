@@ -444,7 +444,7 @@ class MessageHandler(HandlerInterface):
                 "project_id": int(project_id), 
                 "message_timestamp": timestamp,
             },
-            required_cols=["project_id", "name", "assignee", "task_type"],
+            required_cols=["project_id", "message_sender", "message_content"],
             return_col="id"
             )
         if not success:

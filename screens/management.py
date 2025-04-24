@@ -100,11 +100,12 @@ class TaskWidget(ListItem):
         yield Static(self.render_text(), id="task-static")
 
     def render_text(self):
+        id = self.task_data.get("id", "Unknown")
         name = self.task_data.get("name", "Unknown")
         assignee = self.task_data.get("assignee", "Unknown")
         start = self.format_date(self.task_data.get("start_date", "N/A"))
         end = self.format_date(self.task_data.get("end_date", "N/A"))
-        basic_info = f"{name} | {assignee} | {start} → {end}"
+        basic_info = f"{id} - {name} | {assignee} | {start} → {end}"
         if self.expanded:
             description = self.task_data.get("description", "No description")
             more_info = f"\nDescription: {description}"
@@ -181,7 +182,7 @@ class TaskList(ListView):
             event.stop()
         elif event.key == "d":
             if self.selected_item:
-                await self.parent_screen.delete_task(self.selected_item.task_data)
+                await self.parent_screen.delete_task(self.selected_item, self.selected_item.task_data)
             event.stop()
 
     def select_previous_item(self):
@@ -231,13 +232,13 @@ class ManagementScreen(Screen):
             session_participant_id=session_participant_id
             )
         self.task_lists = {}
+        self.messages = {}
 
     CSS_PATH = [
         "../styles/management.tcss",
         "../styles/message.tcss",
         "../styles/task.tcss"
     ]
-
 
     async def on_mount(self):
         try:
@@ -272,11 +273,38 @@ class ManagementScreen(Screen):
             self.update_focus_borders()
             self.update_footer_shortcuts()
             event.stop()
+        elif self.focused_pane == "chat" and event.key == "enter":
+            message_input = self.query_one("#chat-input", Input)
+            message_content = message_input.value.strip()
+            if message_content:
+                await self.send_message(message_content)
+                message_input.value = ""
+            event.stop()
         elif self.focused_pane == "tasks":
             current_tab = self.query_one(TabbedContent).active
             task_list = self.task_lists.get(current_tab.replace("-tabpane", ""))
             if task_list:
                 await task_list.on_key(event)
+
+    async def send_message(self, message_content: str):
+        if not message_content.strip():
+            return
+        try:
+            session = await session_manager.get_session()
+            message_data = {
+                "project_id": 62,
+                "message_content": message_content,
+                "message_sender": self.session_username,
+                "message_timestamp": datetime.utcnow().isoformat(),
+            }
+            url = f"http://localhost:8000/messages/"
+            async with session.post(url, json=message_data) as response:
+                if response.status == 200:
+                    self.notify("Message sent successfully.")
+                else:
+                    self.notify(f"Failed to send message: {response.status}")
+        except Exception as e:
+            self.notify(f"Error sending message: {str(e)}")
 
     async def fetch_project_tasks(self, session):
         url = f"http://localhost:8000/tasks"
@@ -323,8 +351,22 @@ class ManagementScreen(Screen):
                 }
                 async with session.put(url, json=data) as response:
                     if response.status == 200:
-                        task_widget.task_data["task_type"] = new_type
                         self.notify(f"Moved task {task_widget.task_data.get('id')} to '{new_type}'.")
+                        current_task_list = self.task_lists.get(current_type)
+                        if current_task_list:
+                            task_widget.remove()
+                            current_task_list.move_mode = False
+                            if len(current_task_list.children) > 0:
+                                current_task_list.select_item(current_task_list.children[0])
+                            else:
+                                pass
+                        new_widget = TaskWidget(task_widget.task_data.copy(), self)
+                        new_task_list = self.task_lists.get(new_type)
+                        if new_task_list:
+                            new_task_list.append(new_widget)
+                            current_index = new_task_list.children.index(new_widget)
+                            new_task_list.select_item(new_widget)
+                            new_task_list.move_mode = False
                     else:
                         self.notify(f"Failed to move task {task_widget.task_data.get('id')}: {response.status}")
         except Exception as e:
@@ -334,14 +376,22 @@ class ManagementScreen(Screen):
         modal_screen = TaskEditModalScreen(task_data=task_data, parent_screen=self)
         self.app.push_screen(modal_screen)
 
-    async def delete_task(self, task_data):
+    async def delete_task(self, selected_item, task_data):
         try:
             task_id = task_data["id"]
+            current_type = task_data.get("task_type", "backlog").lower()
             session = await session_manager.get_session()
             url = f"http://localhost:8000/tasks/{task_id}"
             async with session.delete(url) as response:
                 if response.status == 200:
                     self.notify(f"Task {task_id} deleted successfully.")
+                    current_task_list = self.task_lists.get(current_type)
+                    current_index = current_task_list.children.index(selected_item)
+                    if len(current_task_list.children) > 1:
+                        if current_index > 0:
+                            current_task_list.select_item(current_task_list.children[current_index - 1])
+                        else:
+                            current_task_list.select_item(current_task_list.children[1])                        
                 else:
                     self.notify(f"Failed to delete task {task_id}: {response.status}")
         except Exception as e:
@@ -370,7 +420,7 @@ class ManagementScreen(Screen):
             if table == "tasks":
                 self.handle_task_update(updated_data_entry)
             elif table == "messages":
-                self.handle_message_update(updated_data_entry)
+                self.handle_message_update(updated_data_entry) 
             else:
                 self.notify(f"Unsupported table operation: {table}")
         elif operation == "DELETE":
@@ -399,50 +449,75 @@ class ManagementScreen(Screen):
                 self.notify(f"Task {new_data['id']} already exists")
 
     def handle_task_update(self, updated_data):
-        task_type = updated_data.get("task_type", "backlog")
-        task_list = self.task_lists.get(task_type)
-        if task_list:
-            widget = task_list.get_widget_by_id(updated_data["id"])
+        new_type = updated_data.get("task_type", "backlog")
+        task_id = updated_data.get("id")
+        for current_type, current_task_list in self.task_lists.items():
+            widget = current_task_list.get_widget_by_id(task_id)
             if widget:
-                widget.update_task(updated_data)
-                self.notify(f"Task {updated_data['id']} updated in '{task_type}'")
-            else:
-                for lt_name, lt in self.task_lists.items():
-                    existing = lt.get_widget_by_id(updated_data["id"])
-                    if existing:
-                        lt.remove(existing)
-                        break
-                new_widget = TaskWidget(updated_data, self)
-                task_list.append(new_widget)
-                self.notify(f"Task {updated_data['id']} moved to '{task_type}'")
+                try:
+                    current_index = current_task_list.children.index(widget)
+                    widget.remove()
+                    if len(current_task_list.children) > 1:
+                        if current_index > 0:
+                            current_task_list.select_item(current_task_list.children[current_index - 1])
+                        else:
+                            current_task_list.select_item(current_task_list.children[0])
+                except ValueError:
+                    pass
+                break
+        new_list = self.task_lists.get(new_type)
+        if new_list:
+            new_widget = TaskWidget(updated_data, self)
+            new_list.append(new_widget)
+            if len(new_list.children) == 1:
+                new_list.select_item(new_widget)
 
-    def handle_task_delete(self, old_data):
-        task_type = old_data.get("task_type", "backlog")
-        task_id = old_data.get("id")
+            self.notify(f"Task {task_id} moved to '{new_type}'")
+
+    def handle_task_delete(self, task_data):
+        task_id = task_data["id"]
+        task_type = task_data.get("task_type")
         task_list = self.task_lists.get(task_type)
         if task_list:
             widget = task_list.get_widget_by_id(task_id)
             if widget:
-                task_list.remove(widget)
-                self.notify(f"Task {task_id} deleted")
-            else:
-                self.notify(f"Task {task_id} not found for deletion")
+                widget.remove()  
+                self.notify(f"Task {task_id} deleted from {task_type}")
+                return
+
     def handle_message_insert(self, new_data):
-        self.notify(f"Message {new_data['id']} inserted successfully")
+        message_widget = Message(
+            message_content=new_data.get("message_content", ""),
+            message_sender=new_data.get("message_sender", "Unknown"),
+            message_time=new_data.get("message_timestamp", "Unknown")
+        )
+        chat_messages = self.query_one("#chat-messages", ListView)
+        chat_messages.append(message_widget)
+        chat_messages.selected = message_widget 
+        chat_messages.scroll_end()
+        self.notify(f"Message from {new_data['sender']} added.")
 
     def handle_message_update(self, updated_data):
-        self.notify(f"Message {updated_data['id']} updated successfully")
+        # No need for update to messages for now
+        pass
 
     def handle_message_delete(self, old_data):
-        self.notify(f"Message {old_data['id']} deleted successfully")
-    
+        # No need for deleting messages for now
+        pass
+
     def compose(self) -> ComposeResult:
         with Container(id="app-grid"):
             with Container(id="information-bar"):
                 yield Horizontal(Static(f"Noni {__version__}", id="noni-text"))
             with Vertical(id="chat-left-pane"):
-                with VerticalScroll(id="chat-messages"):
-                    yield Message()
+                with ListView(id="chat-messages"):
+                    now = datetime.utcnow()
+                    formatted_timestamp = now.isoformat(timespec='seconds')
+                    yield Message(
+                        message_content="This is a chat :)",
+                        message_sender="Anonymous",
+                        message_time=formatted_timestamp
+                    )
                 yield Input(placeholder="Type your message...", id="chat-input")
             with Container(id="tasks-top-right"):
                 with TabbedContent(initial="backlog-tabpane"):

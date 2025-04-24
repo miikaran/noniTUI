@@ -1,4 +1,5 @@
 from core.sql_interface import SQLInterface
+from datetime import datetime
 
 class MessagesModel(SQLInterface):
     def __init__(self, db_conn):
@@ -9,10 +10,10 @@ class MessagesModel(SQLInterface):
         ])
         self.set_columns([
             ("project_id", int),
-            ("session_participant_id", int),
+            #("session_participant_id", int),
             ("message_sender", str),
             ("message_content", str),
-            ("message_timestamp", str)
+            ("message_timestamp", datetime)
         ])
         self.set_clauses({
             "messages_equals_in": "{} in {}",
