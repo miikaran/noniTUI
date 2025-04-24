@@ -23,8 +23,7 @@ class WebsocketManager:
                 await websocket.close(code=1000)
             self.active_connections[session_id] = {}
             notification_listener = NotificationListener(
-                db_conn=get_db(),
-                websocket_manager=self,
+                websocket_manager=self
             )
             await notification_listener.start_up(project_id, session_id=session_id)
         self.active_connections[session_id][str(participant_id)] = websocket
