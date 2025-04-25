@@ -19,6 +19,7 @@
 - Create and join projects
 - Manage tasks (CRUD)
 - Chat with people in the same session
+- Realtime collaboration between users in the same session
 
 ## Setup
 
