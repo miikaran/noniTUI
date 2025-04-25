@@ -15,7 +15,7 @@ router = APIRouter(prefix="/messages", tags=["Messages"])
 
 class MessageModel(BaseModel):
     project_id: int = Field()
-    session_participant_id: int = Field()
+    session_participant_id: Optional[int] = Field(None)
     message_sender: str = Field(max_length=100)
     message_content: str = Field(max_length=500)
     message_timestamp: Annotated[datetime, Body()]

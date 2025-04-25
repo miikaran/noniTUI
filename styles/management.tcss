@@ -5,16 +5,16 @@
     grid-rows: 1fr;
 }
 
+
 #chat-left-pane > Static {
     background: $boost;
     color: auto;
-    margin-bottom: 1;
-    padding: 1;
 }
 
 #chat-left-pane {
     background: rgba(12, 20, 28, 0.26);
     height: 100%;
+    padding: 0;
 }
 
 #chat-input{
@@ -28,7 +28,7 @@
 }
 
 .focused-pane {
-    border-top: thick rgb(74, 141, 209);
+    border-top: thick rgb(68, 134, 233);
 }
 
 TabbedContent {
@@ -74,4 +74,9 @@ TabPane > Label {
     text-align: center;
     width: 100%;
 }
+
+.participant-names{
+    text-align: right;
+}
+  
 

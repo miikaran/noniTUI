@@ -14,7 +14,7 @@ ListItem {
 
 .selected-task {
     border-left: thick rgb(168, 184, 255);
-    background: rgb(104, 55, 160);
+    background: rgb(102, 46, 152);
 }
 
 .move-mode {
