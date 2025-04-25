@@ -7,7 +7,7 @@
   <br>
 </h1>
 
-<h4 align="center">Session based  project management tool made for Terminal using <a href="https://www.textualize.io/" target="_blank">Textualize</a>.</h4>
+<h4 align="center">Fast and minimal terminal UI for real-time collaborative project management — powered by <a href="https://www.textualize.io/" target="_blank">Textualize</a>.</h4>
 
 
 ![screenshot](/docs/nonitui_ui.png)
