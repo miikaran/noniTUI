@@ -12,6 +12,17 @@ from widgets.message import Message
 from utils.session_manager import session_manager
 from utils.websocket_listener import WebSocketListener
 
+def safe_async_call(func):
+    # Global error handling to avoid crashing
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            self = args[0]
+            if hasattr(self, "notify"):
+                self.notify(f"Unexpected error in {func.__name__}: {str(e)}")
+    return wrapper
+
 class TaskEditModalScreen(ModalScreen):
     def __init__(self, task_data: dict, parent_screen):
         super().__init__()
@@ -233,6 +244,7 @@ class ManagementScreen(Screen):
             )
         self.task_lists = {}
         self.messages = {}
+        self.participants = {}
 
     CSS_PATH = [
         "../styles/management.tcss",
@@ -244,6 +256,8 @@ class ManagementScreen(Screen):
         try:
             session = await session_manager.get_session()
             await self.fetch_project_tasks(session)
+            await self.fetch_project_messages()
+            await self.fetch_participants(session)
             asyncio.create_task(self.websocket_listener.start())
         except aiohttp.ClientError as e:
             self.notify(f"Connection Error: {e}")
@@ -267,6 +281,7 @@ class ManagementScreen(Screen):
             if task_list:
                 self.set_focus(task_list)
 
+    @safe_async_call
     async def on_key(self, event: events.Key):
         if event.key == "tab":
             self.focused_pane = "chat" if self.focused_pane == "tasks" else "tasks"
@@ -286,6 +301,7 @@ class ManagementScreen(Screen):
             if task_list:
                 await task_list.on_key(event)
 
+    @safe_async_call
     async def send_message(self, message_content: str):
         if not message_content.strip():
             return
@@ -306,6 +322,7 @@ class ManagementScreen(Screen):
         except Exception as e:
             self.notify(f"Error sending message: {str(e)}")
 
+    @safe_async_call
     async def fetch_project_tasks(self, session):
         url = f"http://localhost:8000/tasks"
         async with session.get(url) as response:
@@ -316,6 +333,45 @@ class ManagementScreen(Screen):
             else:
                 self.notify(f"Failed to fetch tasks: {response.status}")
 
+    @safe_async_call
+    async def fetch_participants(self, session):
+        url = f"http://localhost:8000/projects/participants"
+        async with session.post(url) as response:
+            if response.status == 200:
+                participants = await response.json()
+                self.participants = {p['participant_id']: p['participant_name'] for p in participants}
+                self.update_participant_container()
+            else:
+                self.notify(f"Failed to fetch participants: {response.status}")
+
+    @safe_async_call
+    async def fetch_project_messages(self):
+        session = await session_manager.get_session()
+        url = f"http://localhost:8000/messages"
+        async with session.get(url) as response:
+            if response.status == 200:
+                all_messages = await response.json()
+                if not all_messages:
+                    self.use_default_chat_message()
+                    return
+                # Sort last 10 messages by time -> add to chat
+                last_10 = sorted(all_messages, key=lambda m: m.get("message_timestamp", ""), reverse=True)[:10]
+                last_10.reverse() 
+                message_list = self.query_one("#chat-messages", ListView)
+                message_list.clear()
+                for msg in last_10:
+                    widget = Message(
+                        message_content=msg["message_content"],
+                        message_sender=msg["message_sender"],
+                        message_time=msg["message_timestamp"]
+                    )
+                    message_list.append(widget)
+                message_list.scroll_end()
+            else:
+                self.notify(f"Failed to fetch messages: {response.status}")
+                self.use_default_chat_message()
+
+    @safe_async_call
     async def populate_tasks(self, tasks_data: list[dict]):
         tabs = {
             "backlog": self.query_one("#backlog-tabpane", TabPane).query_one(ListView),
@@ -334,6 +390,7 @@ class ManagementScreen(Screen):
             if len(tabs[task_type].children) == 1:
                 tabs[task_type].select_item(widget)
 
+    @safe_async_call
     async def move_task(self, task_widget: TaskWidget, direction: str):
         order = ["backlog", "todo", "in-progress", "done"]
         current_type = task_widget.task_data.get("task_type", "backlog").lower()
@@ -372,10 +429,12 @@ class ManagementScreen(Screen):
         except Exception as e:
             self.notify(f"Error moving task: {str(e)}")
 
+    @safe_async_call
     async def show_task_edit_modal(self, task_data):
         modal_screen = TaskEditModalScreen(task_data=task_data, parent_screen=self)
         self.app.push_screen(modal_screen)
 
+    @safe_async_call
     async def delete_task(self, selected_item, task_data):
         try:
             task_id = task_data["id"]
@@ -404,6 +463,7 @@ class ManagementScreen(Screen):
         else:
             footer.update("N - New Task  |  E - Edit  |  M - Move Mode  |  ←/→ - Move Task  |  D - Delete  |  Tab - Switch  |  ⬆/⬇ - Navigate")
 
+    @safe_async_call
     async def on_websocket_message(self, updated_data):
         operation = updated_data.get("operation")
         table = updated_data.get("table")
@@ -413,6 +473,8 @@ class ManagementScreen(Screen):
                 self.handle_task_insert(new_data)
             elif table == "messages":
                 self.handle_message_insert(new_data)
+            elif table == "session_participants":
+                self.handle_session_participant_insert(new_data)
             else:
                 self.notify(f"Unsupported table operation: {table}")
         elif operation == "UPDATE":
@@ -421,6 +483,8 @@ class ManagementScreen(Screen):
                 self.handle_task_update(updated_data_entry)
             elif table == "messages":
                 self.handle_message_update(updated_data_entry) 
+            elif table == "session_participants":
+                self.handle_session_participant_update(updated_data_entry)
             else:
                 self.notify(f"Unsupported table operation: {table}")
         elif operation == "DELETE":
@@ -429,6 +493,8 @@ class ManagementScreen(Screen):
                 self.handle_task_delete(old_data)
             elif table == "messages":
                 self.handle_message_delete(old_data)
+            elif table == "session_participants":
+                self.handle_session_participant_delete(old_data)
             else:
                 self.notify(f"Unsupported table operation: {table}")
         else:
@@ -467,11 +533,12 @@ class ManagementScreen(Screen):
                 break
         new_list = self.task_lists.get(new_type)
         if new_list:
-            new_widget = TaskWidget(updated_data, self)
-            new_list.append(new_widget)
-            if len(new_list.children) == 1:
-                new_list.select_item(new_widget)
-
+            existing_widget = new_list.get_widget_by_id(task_id)
+            if not existing_widget:
+                new_widget = TaskWidget(updated_data, self)
+                new_list.append(new_widget)
+                if len(new_list.children) == 1:
+                    new_list.select_item(new_widget)
             self.notify(f"Task {task_id} moved to '{new_type}'")
 
     def handle_task_delete(self, task_data):
@@ -495,7 +562,36 @@ class ManagementScreen(Screen):
         chat_messages.append(message_widget)
         chat_messages.selected = message_widget 
         chat_messages.scroll_end()
-        self.notify(f"Message from {new_data['sender']} added.")
+
+    def handle_session_participant_insert(self, new_data):
+        participant_id = new_data.get("participant_id")
+        participant_name = new_data.get("participant_name")             
+        self.participants[participant_id] = participant_name
+        self.update_participant_container()
+        self.notify(f"Participant {participant_name} added to session.")
+
+    def handle_session_participant_update(self, updated_data):
+        # no need for update in participants now
+        pass
+
+    def handle_session_participant_delete(self, old_data):
+        participant_id = old_data.get("participant_id")
+        participant_name = old_data.get("participant_name")
+        if participant_id in self.participants:
+            participant_name = self.participants.pop(participant_id)
+            self.notify(f"Removed participant {participant_name} from session.")
+            self.update_participant_container()
+        else:
+            self.notify(f"Participant with ID {participant_id} not found for removal.")
+
+    def update_participant_container(self):
+        participants_container = self.query_one("#participants-container", Container)
+        for widget in participants_container.children:
+            widget.remove()
+        participant_names = ", ".join(self.participants.values())
+        participants_widget = Static(participant_names)
+        participants_widget.add_class("participant-names")
+        participants_container.mount(participants_widget)
 
     def handle_message_update(self, updated_data):
         # No need for update to messages for now
@@ -505,19 +601,25 @@ class ManagementScreen(Screen):
         # No need for deleting messages for now
         pass
 
+    def use_default_chat_message(self):
+        message_list = self.query_one("#chat-messages", ListView)
+        message_list.clear()
+        now = datetime.utcnow().isoformat(timespec='seconds')
+        welcome = Message(
+            message_content="This is a chat :)",
+            message_sender="Anonymous",
+            message_time=now
+        )
+        message_list.append(welcome)
+
+
     def compose(self) -> ComposeResult:
         with Container(id="app-grid"):
             with Container(id="information-bar"):
                 yield Horizontal(Static(f"Noni {__version__}", id="noni-text"))
+                yield Container(id="participants-container", classes="participants-container")
             with Vertical(id="chat-left-pane"):
-                with ListView(id="chat-messages"):
-                    now = datetime.utcnow()
-                    formatted_timestamp = now.isoformat(timespec='seconds')
-                    yield Message(
-                        message_content="This is a chat :)",
-                        message_sender="Anonymous",
-                        message_time=formatted_timestamp
-                    )
+                yield ListView(id="chat-messages")
                 yield Input(placeholder="Type your message...", id="chat-input")
             with Container(id="tasks-top-right"):
                 with TabbedContent(initial="backlog-tabpane"):

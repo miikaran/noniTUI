@@ -165,6 +165,14 @@ class ProjectHandler(HandlerInterface):
         session_participant_handler = SessionParticipantHandler(self.db)
         participant_id = session_participant_handler.add_session_participant(session_id, username)
         return participant_id
+    
+    def get_project_participants(self, session_id):
+        if not session_id:
+            raise BadRequestException("No session id found")
+        session_participant_handler = SessionParticipantHandler(self.db)
+        participants = session_participant_handler.get_session_participants(session_id)
+        sorted_participants = sorted(participants, key=lambda p: p["joined_at"], reverse=True)
+        return sorted_participants[:5]
 
 class SessionHandler(HandlerInterface):
     """Represents a handler used to handle project sessions"""

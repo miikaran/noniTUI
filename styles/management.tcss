@@ -28,7 +28,7 @@
 }
 
 .focused-pane {
-    border-top: thick rgb(74, 141, 209);
+    border-top: thick rgb(68, 134, 233);
 }
 
 TabbedContent {
@@ -74,4 +74,9 @@ TabPane > Label {
     text-align: center;
     width: 100%;
 }
+
+.participant-names{
+    text-align: right;
+}
+  
 

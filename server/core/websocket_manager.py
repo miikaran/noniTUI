@@ -44,15 +44,14 @@ class WebsocketManager:
                 print(f"#{participant_id_to_remove} disconnected from session {session_id}")
             if not session_participants:
                 del self.active_connections[session_id]
-                # Have to create seperate handler for this in handlers
-                self.session_participant_handler.delete_record(
+            self.session_participant_handler.delete_record(
                     id=participant_id_to_remove,
                     clauses=[{
                         "col": "participant_id", 
                         "clause": "session_participant_equals", 
                         "value": int(participant_id_to_remove)
                         }]
-                )
+                )            
 
     async def broadcast_to_session(self, message, session_id):
         if session_id not in self.active_connections:

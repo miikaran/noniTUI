@@ -172,3 +172,15 @@ async def delete_project(
         session_id=valid_session
     )
     return "success" if delete_success else "error"
+
+@centralized_error_handling
+@router.post("/participants")
+async def get_project_participants(
+    handler: ProjectHandler = Depends(get_project_handler),
+    valid_session: bool = Depends(check_request_session)
+):
+    participants = handler.get_project_participants(session_id=valid_session)
+    return participants
+
+
+
