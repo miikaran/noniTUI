@@ -17,7 +17,7 @@
 - Keyboard based navigation
 - Share session with others using project UUID
 - Create and join projects
-- Manage tasks (CRUD)
+- Manage tasks in Kanban style
 - Chat with people in the same session
 - Realtime collaboration between users in the same session
 
