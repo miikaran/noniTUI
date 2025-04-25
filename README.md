@@ -24,3 +24,10 @@
 ## Setup
 
 Please see the <a href="/server/README.md">server</a> for setup instructions.
+
+## Abstract system architecture
+![nonitui_abstract_system_architecture (1)](https://github.com/user-attachments/assets/4f69c838-8397-4509-accc-be9e51a152d5)
+### Other documentation
+<a href="/docs">Documentation</a>
+
+
