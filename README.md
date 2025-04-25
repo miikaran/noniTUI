@@ -19,7 +19,7 @@
 - Create and join projects
 - Manage tasks in Kanban style
 - Chat with people in the same session
-- Realtime collaboration between users in the same session
+- Realtime collaboration & updates between users in the same session
 
 ## Setup
 
