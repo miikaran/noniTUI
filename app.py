@@ -1,5 +1,5 @@
 from textual.app import App
-from screens.session import SessionScreen
+from tui.screens.session import SessionScreen
 
 
 class Noni(App):
