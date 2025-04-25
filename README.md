@@ -1,17 +1,25 @@
-# NoniTUI
 
-## Development
+<h1 align="center">
+  <br>
+  <img src="./docs/nonitui_logo.svg" alt="Markdownify" width="200">
+  <br>
+  NoniTUI
+  <br>
+</h1>
 
-Create and activate Python venv: https://docs.python.org/3/library/venv.html
+<h4 align="center">Session based project management tool made for Terminal using <a href="https://www.textualize.io/" target="_blank">Textualize</a>.</h4>
 
-Install dependencies from *requirements.txt* with the following command:
 
-```
-pip install -r requirements.txt
-```
+![screenshot](/docs/nonitui_ui.png)
 
-<h3 align="center">
-  
-![puspus](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXo0N3Npa2oyZWI4enlib3Bwb25uaGY0MTAxbWg3NmE3Nnk5dHkxNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/In0Lpu4FVivjISX9HT/giphy.gif)
+## Key Features
 
-</h3>h3>
+- Keyboard based navigation
+- Share session with others using project UUID
+- Create and join projects
+- Manage tasks (CRUD)
+- Chat with people in the same session
+
+## Setup
+
+Please see the <a href="/server/README.md">server</a> for setup instructions.
